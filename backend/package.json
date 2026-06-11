@@ -1,0 +1,14 @@
+{
+  "name": "yly-backend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.202",
+    "typescript": "^5.4.0",
+    "wrangler": "^3.0.0"
+  }
+}

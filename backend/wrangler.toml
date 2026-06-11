@@ -1,0 +1,16 @@
+# Wrangler configuration for Cloudflare Worker deployment
+name = "yly-backend-worker"
+main = "src/index.ts"
+compatibility_date = "2026-06-11"
+
+env = "production"
+
+[build]
+command = "npm install"
+
+[[kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "your-kv-namespace-id"
+
+[vars]
+WORKER_ALLOWED_ORIGIN = "https://<your-pages-subdomain>.pages.dev"

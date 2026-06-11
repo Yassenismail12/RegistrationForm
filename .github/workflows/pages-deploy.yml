@@ -1,0 +1,23 @@
+# Cloudflare Pages CI/CD workflow for the frontend app
+name: Deploy Frontend to Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+      - run: cd frontend && npm ci
+      - run: cd frontend && npm run build
+      - uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CF_PAGES_API_TOKEN }}
+          accountId: ${{ secrets.CF_ACCOUNT_ID }}
+          projectName: ${{ secrets.CF_PAGES_PROJECT_NAME }}
+          directory: ./frontend/.next/output/static

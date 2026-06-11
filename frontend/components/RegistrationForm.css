@@ -1,0 +1,359 @@
+/* Copied styling from original project */
+/* ── PAGE ── */
+.page-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  direction: rtl;
+  font-family: "Beiruti", sans-serif;
+}
+
+.form-container {
+  background: linear-gradient(160deg, #f0f4ff 0%, #e8f0fe 100%);
+  border-radius: 24px;
+  padding: 32px 40px 28px;
+  width: 780px;
+  max-width: 95vw;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+
+.form-header {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.ministry-logo-img {
+  height: 120px;
+  width: auto;
+  flex-shrink: 0;
+}
+.leading-logo-img {
+  height: 120px;
+  width: 120px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.form-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+}
+.title-img-sub {
+  height: 120px;
+  width: auto;
+}
+.title-img-main {
+  height: 110px;
+  width: auto;
+}
+
+.step-indicator {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 24px;
+  direction: ltr;
+}
+.step-wrapper {
+  display: flex;
+  align-items: center;
+}
+.step-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  transition: all 0.3s;
+  flex-shrink: 0;
+}
+.step-circle.completed {
+  background: #1a3a6b;
+  color: white;
+}
+.step-circle.active {
+  background: white;
+  border: 3px solid #1a3a6b;
+}
+.step-circle.inactive {
+  background: #ccc;
+  border: 3px solid #ccc;
+}
+.step-line {
+  width: 80px;
+  height: 3px;
+  background: #ccc;
+  transition: background 0.3s;
+}
+.step-line.completed {
+  background: #1a3a6b;
+}
+
+.form-body {
+  margin-bottom: 8px;
+}
+.fields-grid {
+  display: flex;
+  flex-direction: row;
+  gap: 0;
+  align-items: flex-start;
+}
+.column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.divider {
+  width: 1px;
+  min-height: 280px;
+  background: #e0b842;
+  margin: 0 28px;
+  align-self: stretch;
+}
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.field-group label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a3a6b;
+  text-align: right;
+  font-family: "Playpen Sans Arabic", sans-serif;
+}
+.field-group input,
+.field-group select {
+  border: none;
+  border-bottom: 2px solid #e0b842;
+  background: transparent;
+  padding: 6px 4px;
+  font-family: "Beiruti", sans-serif;
+  font-size: 13px;
+  color: #555;
+  text-align: right;
+  outline: none;
+  transition: border-color 0.2s;
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+}
+.field-group input:focus,
+.field-group select:focus {
+  border-bottom-color: #1a3a6b;
+  color: #1a3a6b;
+}
+.error {
+  color: #e53e3e;
+  font-size: 11px;
+  margin-top: 2px;
+  text-align: right;
+}
+.form-actions {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 28px;
+}
+.btn-next,
+.btn-prev {
+  padding: 11px 40px;
+  border-radius: 999px;
+  font-family: "Playpen Sans Arabic", sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s;
+}
+.btn-next {
+  background: #1a3a6b;
+  color: white;
+}
+.btn-prev {
+  background: #e0b842;
+  color: #1a3a6b;
+}
+.btn-next:hover,
+.btn-prev:hover {
+  transform: scale(1.04);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+.btn-prev:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+.btn-submit {
+  padding: 11px 40px;
+  border-radius: 999px;
+  font-family: "Playpen Sans Arabic", sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  background: #27ae60;
+  color: white;
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s;
+}
+.btn-submit:hover {
+  transform: scale(1.04);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+.step-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.step-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a3a6b;
+  text-align: center;
+  margin-bottom: 8px;
+  font-family: "Playpen Sans Arabic", sans-serif;
+}
+.welcome-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 40px 20px;
+  text-align: center;
+}
+.welcome-section h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a3a6b;
+  margin: 0;
+  font-family: "Playpen Sans Arabic", sans-serif;
+}
+.welcome-section p {
+  font-size: 14px;
+  color: #555;
+  margin: 0;
+}
+.welcome-description {
+  font-size: 15px;
+  line-height: 1.6;
+  color: #666;
+  max-width: 500px;
+  margin-top: 12px;
+  font-family: "Beiruti", sans-serif;
+}
+.review-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+}
+.review-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.review-group h4 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a3a6b;
+  margin: 0 0 8px 0;
+  border-bottom: 2px solid #e0b842;
+  padding-bottom: 8px;
+  text-align: right;
+  font-family: "Playpen Sans Arabic", sans-serif;
+}
+.review-group p {
+  font-size: 13px;
+  color: #555;
+  margin: 0;
+  text-align: right;
+  padding: 4px 0;
+  font-family: "Beiruti", sans-serif;
+}
+.success-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 60px 30px;
+  text-align: center;
+}
+.success-icon {
+  font-size: 80px;
+  color: #27ae60;
+  margin-bottom: 20px;
+}
+.success-page h2 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a3a6b;
+  margin: 0;
+  font-family: "Playpen Sans Arabic", sans-serif;
+}
+.success-page p {
+  font-size: 16px;
+  color: #555;
+  margin: 0 0 30px 0;
+  line-height: 1.6;
+  font-family: "Beiruti", sans-serif;
+}
+@media (max-width: 600px) {
+  .form-container {
+    padding: 20px 16px;
+  }
+  .ministry-logo-img {
+    height: 70px;
+  }
+  .leading-logo-img {
+    height: 70px;
+    width: 70px;
+  }
+  .title-img-sub {
+    height: 80px;
+  }
+  .title-img-main {
+    height: 100px;
+  }
+  .fields-grid {
+    flex-direction: column;
+  }
+  .divider {
+    display: none;
+  }
+  .step-line {
+    width: 48px;
+  }
+  .fields-grid {
+    flex-direction: column;
+    gap: 0;
+    width: 100%;
+  }
+  .column {
+    width: 100%;
+    gap: 0;
+  }
+  .field-group {
+    width: 100%;
+    padding-bottom: 16px;
+    margin-bottom: 4px;
+  }
+}
