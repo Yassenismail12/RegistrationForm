@@ -1,23 +1,52 @@
-# Cloudflare Pages CI/CD workflow for the frontend app
 name: Deploy Frontend to Cloudflare Pages
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/pages-deploy.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+      pull-requests: write
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v5
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: cd frontend && npm ci
-      - run: cd frontend && npm run build
-      - uses: cloudflare/pages-action@v1
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build (Next.js static export)
+        working-directory: frontend
+        run: npm run export
+        env:
+          NODE_ENV: production
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
         with:
-          apiToken: ${{ secrets.CF_PAGES_API_TOKEN }}
-          accountId: ${{ secrets.CF_ACCOUNT_ID }}
-          projectName: ${{ secrets.CF_PAGES_PROJECT_NAME }}
-          directory: ./frontend/.next/output/static
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy out --project-name=registration-form --branch=${{ github.ref_name }}
+          workingDirectory: frontend
