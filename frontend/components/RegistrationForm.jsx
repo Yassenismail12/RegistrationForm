@@ -65,7 +65,7 @@ export default function RegistrationForm() {
     setSubmitting(true);
     setSubmitError('');
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
       const res = await fetch(`${apiUrl}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
