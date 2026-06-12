@@ -11,16 +11,15 @@ const nextConfig = {
   // Trailing slash ensures correct routing on Cloudflare Pages
   trailingSlash: true,
 
-  // Optional: set the export output directory (matches wrangler.toml)
-  distDir: 'out',
-
-  // Suppress build errors from ESLint/TypeScript during CI
-  eslint: {
-    ignoreDuringBuilds: false,
+  // Suppress Turbopack workspace root warning
+  turbopack: {
+    root: __dirname,
   },
-  typescript: {
-    ignoreBuildErrors: false,
+
+  // Opt out of Next.js telemetry
+  env: {
+    NEXT_TELEMETRY_DISABLED: '1',
   },
 };
 
-module.exports = nextConfig;
+module.exports = nextConfig;  
