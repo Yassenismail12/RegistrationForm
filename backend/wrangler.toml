@@ -13,4 +13,9 @@ binding = "RATE_LIMIT_KV"
 id = "ee2a1d78859245b98546175b2e3d9057"
 
 [vars]
+# Backend environment
 WORKER_ALLOWED_ORIGIN = "https://registrationform.ylyunion.workers.dev/"
+UPSTASH_REDIS_REST_URL = "https://quiet-badger-41404.upstash.io"
+UPSTASH_REDIS_REST_TOKEN = "AaG8AAIgcDE0MzMzZWQxOWY0Yzc0MTU1YmM0NjAyMGMxMGFmZWY4Zg"
+FIREBASE_API_KEY = "AIzaSyAmmtTkhrui4JKfYM1Pb2ez1qv6XZTaxWw"
+FIREBASE_PROJECT_ID = "yly-registration"

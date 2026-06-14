@@ -1,10 +1,6 @@
 {
   "name": "yly-website",
   "private": true,
-  "workspaces": [
-    "frontend",
-    "backend"
-  ],
   "scripts": {
     "setup": "npm install",
     "dev:frontend": "cd frontend && npm run dev",
@@ -14,17 +10,5 @@
     "build": "npm run build:frontend && npm run build:backend",
     "deploy:frontend": "cd frontend && npm run export",
     "deploy:backend": "cd backend && npm run deploy"
-  },
-  "dependencies": {
-    "@upstash/redis": "^1.38.0",
-    "next": "^14.2.35",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
-  },
-  "devDependencies": {
-    "@types/node": "^20.19.43",
-    "@types/react": "^18.3.31",
-    "@types/react-dom": "^18.3.7",
-    "typescript": "^5.9.3"
   }
 }

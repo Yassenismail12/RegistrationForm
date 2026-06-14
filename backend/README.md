@@ -1,11 +1,28 @@
-# Backend (Nest.js)
+# Backend (Cloudflare Worker)
 
-Install and run the Nest.js backend:
+This backend is implemented as a Cloudflare Worker API and supports form submissions to Firebase, plus Redis-based rate limiting and caching.
+
+Install and run the Worker locally:
 
 ```bash
 cd backend
 npm install
-npm run start:dev
+npm run dev
 ```
 
-The backend listens on port `3001` and exposes `POST /register` to receive the form payload.
+API endpoints:
+
+- `POST /api/register` — submit registration payload and save to Firestore.
+- `GET /api/health` — health check endpoint.
+- `GET /api/submission/:id` — fetch cached submission data.
+- `GET /api/optimize-image?url=<https-url>` — proxy and cache remote images.
+
+Required environment variables:
+
+- `WORKER_ALLOWED_ORIGIN` — accepted frontend origin for CORS.
+- `UPSTASH_REDIS_REST_URL` — Upstash Redis REST URL.
+- `UPSTASH_REDIS_REST_TOKEN` — Upstash Redis REST token.
+- `FIREBASE_API_KEY` — Firebase API key.
+- `FIREBASE_PROJECT_ID` — Firebase project ID.
+
+Local development using `wrangler dev` will use these env vars from the Cloudflare dashboard or a local env file.

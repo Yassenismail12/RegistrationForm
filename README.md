@@ -45,5 +45,11 @@ This repository is a monorepo for a public registration frontend and a Cloudflar
 ## Environment
 
 - Create `frontend/.env.local` from `frontend/.env.local.example`.
-- Add Cloudflare Worker runtime vars in `backend/.dev.vars`.
-- Never commit secrets or `.dev.vars`.
+- Create `backend/.env.example` from `backend/.env.example` or use Cloudflare Worker runtime variables in `wrangler.toml` / the Cloudflare dashboard.
+- Required backend variables:
+  - `WORKER_ALLOWED_ORIGIN` — allowed frontend origin for CORS.
+  - `UPSTASH_REDIS_REST_URL` — Upstash Redis REST URL for rate limiting and caching.
+  - `UPSTASH_REDIS_REST_TOKEN` — Upstash Redis REST token.
+  - `FIREBASE_API_KEY` — Firebase API key.
+  - `FIREBASE_PROJECT_ID` — Firebase project ID.
+- Never commit secrets or `.env.local` / `.env.example` with real values.
