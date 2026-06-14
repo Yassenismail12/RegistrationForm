@@ -57,7 +57,7 @@ export default function RegistrationForm() {
   const handleNext = () => { if (validateStep(step)) setStep(s => Math.min(s + 1, 5)); };
   const handlePrev = () => setStep(s => Math.max(s - 1, 1));
 
-  const handleSubmit = async () => {
+ const handleSubmit = async () => {
     if (!validateStep(2) || !validateStep(3) || !validateStep(4)) { 
       setStep(2); 
       return; 
@@ -65,17 +65,24 @@ export default function RegistrationForm() {
     setSubmitting(true);
     setSubmitError('');
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
-      const res = await fetch(`${apiUrl}/register`, {
+  
+      const res = await fetch('http://127.0.0.1:8787/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
+
       if (!res.ok) throw new Error('network');
+      
       const data = await res.json();
-      setSubmitted(true);
+      console.log("تم الإرسال بنجاح، رقم المستند:", data.id);
+      
+      
+      setSubmitted(true); 
+      
     } catch (err) {
-      setSubmitError('فشل إرسال البيانات. حاول مرة أخرى.');
+      console.error(err);
+      setSubmitError('فشل إرسال البيانات. تأكد إن السيرفر (Backend) شغال أولاً.');
     } finally {
       setSubmitting(false);
     }

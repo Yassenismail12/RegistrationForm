@@ -1,8 +1,22 @@
 // Cloudflare Worker entrypoint for the backend API
+import { initializeApp, FirebaseApp } from "firebase/app";
+import { getFirestore, collection, addDoc, Firestore } from "firebase/firestore/lite";
+
 interface Env {
   RATE_LIMIT_KV: KVNamespace;
   WORKER_ALLOWED_ORIGIN?: string;
+ 
+  FIREBASE_API_KEY: string;
+  FIREBASE_AUTH_DOMAIN: string;
+  FIREBASE_PROJECT_ID: string;
+  FIREBASE_STORAGE_BUCKET: string;
+  FIREBASE_MESSAGING_SENDER_ID: string;
+  FIREBASE_APP_ID: string;
 }
+
+
+let app: FirebaseApp | null = null;
+let db: Firestore | null = null;
 
 const DEFAULT_ORIGIN = 'https://<your-pages-subdomain>.pages.dev';
 const RATE_LIMIT_WINDOW_SECONDS = 60;
@@ -60,6 +74,20 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
+
+    if (!app) {
+      const firebaseConfig = {
+        apiKey: env.FIREBASE_API_KEY,
+        authDomain: env.FIREBASE_AUTH_DOMAIN,
+        projectId: env.FIREBASE_PROJECT_ID,
+        storageBucket: env.FIREBASE_STORAGE_BUCKET,
+        messagingSenderId: env.FIREBASE_MESSAGING_SENDER_ID,
+        appId: env.FIREBASE_APP_ID
+      };
+      app = initializeApp(firebaseConfig);
+      db = getFirestore(app);
+    }
+
     if (request.method === 'OPTIONS') {
       return new Response(null, {
         status: 204,
@@ -69,7 +97,15 @@ export default {
 
     const clientIp = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'anonymous';
     const clientId = `ip:${clientIp}`;
-    const allowed = await rateLimit(clientId, env);
+    
+    let allowed = true;
+    try {
+      if (env.RATE_LIMIT_KV) {
+        allowed = await rateLimit(clientId, env);
+      }
+    } catch (e) {
+   
+    }
 
     if (!allowed) {
       logEvent('rate_limit_exceeded', { clientId, path });
@@ -81,14 +117,30 @@ export default {
       return jsonResponse({ status: 'ok', ts: Date.now() }, 200, 'public, max-age=10, stale-while-revalidate=30', origin);
     }
 
+    // الـ Route الأصلي والمظبوط للتيم ليدر
     if (path === '/register' && request.method === 'POST') {
       try {
-        const body = await request.json();
+        const body = (await request.json()) as Record<string, any>;
         logEvent('registration_request', { clientId, path, body });
-        return jsonResponse({ success: true, received: body }, 200, 'no-store', origin);
+
+      
+        if (!db) throw new Error("Firestore not initialized");
+
+        const docRef = await addDoc(collection(db, "applicants"), {
+          ...body,
+          submittedAt: new Date().toISOString(),
+          source: "Cloudflare-Worker"
+        });
+
+        return jsonResponse({ 
+          success: true, 
+          message: "Data saved to Firebase successfully!", 
+          id: docRef.id 
+        }, 200, 'no-store', origin);
+
       } catch (error) {
         logEvent('registration_error', { clientId, path, error: String(error) });
-        return jsonResponse({ error: 'Invalid JSON payload' }, 400, 'no-store', origin);
+        return jsonResponse({ error: 'Failed to save data to Firebase', details: String(error) }, 400, 'no-store', origin);
       }
     }
 
