@@ -1,29 +1,23 @@
 {
-  "name": "yly-website",
+  "name": "yly-frontend",
+  "version": "0.1.0",
   "private": true,
-  "workspaces": [
-    "frontend",
-    "backend"
-  ],
   "scripts": {
-    "setup": "npm install",
-    "dev:frontend": "cd frontend && npm run dev",
-    "dev:backend": "cd backend && npm run dev",
-    "build:frontend": "cd frontend && npm run export",
-    "build:backend": "cd backend && npm run build",
-    "build": "npm run build:frontend && npm run build:backend",
-    "deploy:frontend": "cd frontend && npm run export",
-    "deploy:backend": "cd backend && npm run deploy"
+    "dev": "next dev",
+    "build": "next build",
+    "export": "next build",
+    "start": "next start"
   },
   "dependencies": {
     "next": "^14.2.35",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "@types/node": "^20.19.43",
-    "@types/react": "^18.3.31",
-    "@types/react-dom": "^18.3.7",
-    "typescript": "^5.9.3"
+    "@cloudflare/next-on-pages": "latest",
+    "@types/node": "^16.18.11",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^6.0.3"
   }
 }
