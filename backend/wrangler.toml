@@ -10,7 +10,7 @@ command = "npm install"
 
 [[kv_namespaces]]
 binding = "RATE_LIMIT_KV"
-id = "your-kv-namespace-id"
+id = "ee2a1d78859245b98546175b2e3d9057"
 
 [vars]
-WORKER_ALLOWED_ORIGIN = "https://<your-pages-subdomain>.pages.dev"
+WORKER_ALLOWED_ORIGIN = "https://registrationform.ylyunion.workers.dev/"
