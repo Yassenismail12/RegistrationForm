@@ -24,4 +24,4 @@ Required environment variables:
 - `FIREBASE_API_KEY` — Firebase API key.
 - `FIREBASE_PROJECT_ID` — Firebase project ID.
 
-Local development using `wrangler dev` will use these env vars from the Cloudflare dashboard or a local env file.
+Local development using `wrangler dev` will use these env vars from the Cloudflare dashboard or a local env file
