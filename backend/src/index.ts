@@ -1,5 +1,5 @@
 interface Env {
-  RATE_LIMIT_KV: KVNamespace;
+  KV: KVNamespace;
   WORKER_ALLOWED_ORIGIN?: string;
   FIREBASE_API_KEY: string;
   FIREBASE_PROJECT_ID: string;
@@ -106,18 +106,18 @@ async function getSubmissionFromFirestore(id: string, env: Env) {
 
 async function rateLimit(clientId: string, env: Env) {
   const key = `rate_limit:${clientId}`;
-  const current = await env.RATE_LIMIT_KV.get<number>(key, 'json');
+  const current = await env.KV.get<number>(key, 'json');
   const count = (current ?? 0) + 1;
-  await env.RATE_LIMIT_KV.put(key, JSON.stringify(count), { expirationTtl: RATE_LIMIT_WINDOW_SECONDS });
+  await env.KV.put(key, JSON.stringify(count), { expirationTtl: RATE_LIMIT_WINDOW_SECONDS });
   return count <= RATE_LIMIT_REQUESTS;
 }
 
 async function cacheGet(key: string, env: Env) {
-  return await env.RATE_LIMIT_KV.get(key, 'json');
+  return await env.KV.get(key, 'json');
 }
 
 async function cacheSet(key: string, value: unknown, ttl: number, env: Env) {
-  await env.RATE_LIMIT_KV.put(key, JSON.stringify(value), { expirationTtl: ttl });
+  await env.KV.put(key, JSON.stringify(value), { expirationTtl: ttl });
 }
 
 function encodeBase64(bytes: Uint8Array) {
@@ -251,4 +251,5 @@ export default {
 
     return jsonResponse({ error: 'Not found' }, 404, 'no-store', origin);
   },
+  
 };

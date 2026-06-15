@@ -9,7 +9,7 @@ env = "production"
 command = "npm install"
 
 [[kv_namespaces]]
-binding = "RATE_LIMIT_KV"
+binding = "KV"
 id = "ee2a1d78859245b98546175b2e3d9057"
 
 [vars]

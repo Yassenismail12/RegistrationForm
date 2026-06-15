@@ -20,7 +20,7 @@ API endpoints:
 Required environment variables:
 
 - `WORKER_ALLOWED_ORIGIN` — accepted frontend origin for CORS.
-- `RATE_LIMIT_KV` - Cloudflare Workers KV binding used for rate limiting and caching.
+- `KV` - Cloudflare Workers KV binding used for rate limiting and caching.
 - `FIREBASE_API_KEY` — Firebase API key.
 - `FIREBASE_PROJECT_ID` — Firebase project ID.
 

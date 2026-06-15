@@ -48,7 +48,7 @@ This repository is a monorepo for a public registration frontend and a Cloudflar
 - Create `backend/.env.example` from `backend/.env.example` or use Cloudflare Worker runtime variables in `wrangler.toml` / the Cloudflare dashboard.
 - Required backend variables:
   - `WORKER_ALLOWED_ORIGIN` — allowed frontend origin for CORS.
-  - `RATE_LIMIT_KV` - Cloudflare Workers KV binding used for rate limiting and caching.
+  - `KV` - Cloudflare Workers KV binding used for rate limiting and caching.
   - `FIREBASE_API_KEY` — Firebase API key.
   - `FIREBASE_PROJECT_ID` — Firebase project ID.
 - Never commit secrets or `.env.local` / `.env.example` with real values.
