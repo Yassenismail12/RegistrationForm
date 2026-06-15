@@ -246,7 +246,7 @@ export default function RegistrationForm() {
               <div style={{ display: 'flex', justifyContent: 'center', margin: '16px 0' }}>
                 <div
                   className="cf-turnstile"
-                  data-sitekey="0x4AAAAADkzJ8tcT5glStf5"
+                  data-sitekey="0x4AAAAAADkzJ8tcT5glStf5"
                   data-callback="onTurnstileSuccess"
                   data-theme="light"
                   data-language="ar"
