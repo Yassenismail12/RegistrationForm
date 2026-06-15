@@ -3,6 +3,7 @@ interface Env {
   WORKER_ALLOWED_ORIGIN?: string;
   FIREBASE_API_KEY: string;
   FIREBASE_PROJECT_ID: string;
+  TURNSTILE_SECRET: string;
 }
 
 const DEFAULT_ORIGIN = 'https://registration-form.pages.dev';
@@ -154,7 +155,19 @@ async function fetchAndCacheImage(url: string, env: Env) {
   await cacheSet(`img:${url}`, { data, contentType }, IMAGE_CACHE_TTL, env);
   return { data, contentType };
 }
-
+async function verifyTurnstile(token: string, ip: string, env: Env): Promise<boolean> {
+  const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      secret: env.TURNSTILE_SECRET,
+      response: token,
+      remoteip: ip,
+    }),
+  });
+  const data: any = await res.json();
+  return data.success === true;
+}
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const origin = request.headers.get('Origin') || env.WORKER_ALLOWED_ORIGIN || DEFAULT_ORIGIN;
@@ -189,25 +202,34 @@ export default {
     }
 
     if (path === '/api/register' && request.method === 'POST') {
-      try {
-        const body = (await request.json()) as Record<string, any>;
-        logEvent('registration_request', { clientId, path, body });
-        const firestoreResult: any = await saveToFirestore(body, env);
-        const docId = firestoreResult?.name?.split('/').pop();
+  try {
+    const body = (await request.json()) as Record<string, any>;
+    logEvent('registration_request', { clientId, path, body });
 
-        if (docId) {
-          await cacheSet(`submission:${docId}`, { ...body, submittedAt: new Date().toISOString() }, SUBMISSION_CACHE_TTL, env);
-        }
+    // ✅ ADD THIS BLOCK — Turnstile verification
+    const { turnstileToken, ...formFields } = body;
+    const valid = await verifyTurnstile(turnstileToken || '', clientIp, env);
+    if (!valid) {
+      return jsonResponse({ error: 'فشل التحقق، حاول مرة أخرى' }, 403, 'no-store', origin);
+    }
+    // ✅ END OF NEW BLOCK
 
-        return jsonResponse({
-          success: true,
-          message: 'Data saved to Firebase successfully!',
-          id: docId,
-        }, 200, 'no-store', origin);
-      } catch (error) {
-        logEvent('registration_error', { clientId, path, error: String(error) });
-        return jsonResponse({ error: 'Failed to save data to Firebase', details: String(error) }, 400, 'no-store', origin);
-      }
+    const firestoreResult: any = await saveToFirestore(formFields, env); // ← changed body to formFields
+    const docId = firestoreResult?.name?.split('/').pop();
+
+    if (docId) {
+      await cacheSet(`submission:${docId}`, { ...formFields, submittedAt: new Date().toISOString() }, SUBMISSION_CACHE_TTL, env); // ← changed body to formFields
+    }
+
+    return jsonResponse({
+      success: true,
+      message: 'Data saved to Firebase successfully!',
+      id: docId,
+    }, 200, 'no-store', origin);
+  } catch (error) {
+    logEvent('registration_error', { clientId, path, error: String(error) });
+    return jsonResponse({ error: 'Failed to save data to Firebase', details: String(error) }, 400, 'no-store', origin);
+  }
     }
 
     if (path.startsWith('/api/submission/') && request.method === 'GET') {

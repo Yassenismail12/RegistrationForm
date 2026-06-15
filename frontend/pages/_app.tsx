@@ -44,6 +44,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
           href="https://fonts.googleapis.com/css2?family=Beiruti:wght@200..900&family=Playpen+Sans+Arabic:wght@100..800&display=swap"
           rel="stylesheet"
         />
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
       </Head>
       <ErrorBoundary>
         <Component {...pageProps} />

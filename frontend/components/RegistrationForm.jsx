@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import StepIndicator from './StepIndicator';
-
+const [turnstileToken, setTurnstileToken] = useState('');
+const [turnstileError, setTurnstileError] = useState(false);
 const GOVERNORATES = [
   'القاهرة','الجيزة','الإسكندرية','الدقهلية','البحيرة',
   'الفيوم','الغربية','الإسماعيلية','المنوفية','المنيا',
@@ -62,6 +63,10 @@ export default function RegistrationForm() {
       setStep(2); 
       return; 
     }
+    if (!turnstileToken) {           
+    setTurnstileError(true);
+    return;
+  }
     setSubmitting(true);
     setSubmitError('');
     try {
@@ -69,7 +74,7 @@ export default function RegistrationForm() {
       const res = await fetch(`${apiBase}/api/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, turnstileToken }),  
       });
 
       if (!res.ok) throw new Error('network');
@@ -237,6 +242,21 @@ export default function RegistrationForm() {
           {step === 5 && (
             <div className="step-content">
               <h3 className="step-title">مراجعة البيانات</h3>
+               {/* Turnstile widget */}
+              <div style={{ display: 'flex', justifyContent: 'center', margin: '16px 0' }}>
+                <div
+                  className="cf-turnstile"
+                  data-sitekey="0x4AAAAADkzJ8tcT5glStf5"
+                  data-callback="onTurnstileSuccess"
+                  data-theme="light"
+                  data-language="ar"
+                />
+              </div>
+              {turnstileError && !turnstileToken && (
+                <p style={{ color: 'red', textAlign: 'center', fontSize: '13px' }}>
+                  يرجى إتمام التحقق أولاً
+                </p> 
+              )}
               <div className="review-section">
                 <div className="review-group">
                   <h4>البيانات الشخصية</h4>
@@ -277,4 +297,11 @@ export default function RegistrationForm() {
       </div>
     </div>
   );
+  // Make the Turnstile callback available globally
+if (typeof window !== 'undefined') {
+  window.onTurnstileSuccess = (token) => {
+    setTurnstileToken(token);
+    setTurnstileError(false);
+  };
+}
 }
