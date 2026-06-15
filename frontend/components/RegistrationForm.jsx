@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import StepIndicator from './StepIndicator';
 
 const GOVERNORATES = [
@@ -26,6 +26,38 @@ export default function RegistrationForm() {
   const [submitError, setSubmitError] = useState('');
   const [turnstileToken, setTurnstileToken] = useState('');
   const [turnstileError, setTurnstileError] = useState(false);
+  const turnstileRef = useRef(null);
+
+useEffect(() => {
+  if (step !== 5) return;  // only run on step 5
+
+  const renderWidget = () => {
+    if (!window.turnstile || !turnstileRef.current) return;
+    // clear any previous render
+    turnstileRef.current.innerHTML = '';
+    window.turnstile.render(turnstileRef.current, {
+      sitekey: '0x4AAAAADkzJ8tcT5glStf5',  // ← correct key
+      theme: 'light',
+      language: 'ar',
+      callback: (token) => {
+        setTurnstileToken(token);
+        setTurnstileError(false);
+      },
+    });
+  };
+
+  // If script already loaded, render immediately
+  if (window.turnstile) {
+    renderWidget();
+  } else {
+    // Wait for script to load
+    const script = document.querySelector('script[src*="turnstile"]');
+    if (script) {
+      script.addEventListener('load', renderWidget);
+      return () => script.removeEventListener('load', renderWidget);
+    }
+  }
+}, [step]);
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -243,14 +275,9 @@ export default function RegistrationForm() {
             <div className="step-content">
               <h3 className="step-title">مراجعة البيانات</h3>
                {/* Turnstile widget */}
+              {/* Turnstile widget */}
               <div style={{ display: 'flex', justifyContent: 'center', margin: '16px 0' }}>
-                <div
-                  className="cf-turnstile"
-                  data-sitekey="0x4AAAAAADkzJ8tcT5glStf5"
-                  data-callback="onTurnstileSuccess"
-                  data-theme="light"
-                  data-language="ar"
-                />
+                <div ref={turnstileRef} />   {/* ← ref-based, no data-sitekey needed */}
               </div>
               {turnstileError && !turnstileToken && (
                 <p style={{ color: 'red', textAlign: 'center', fontSize: '13px' }}>
@@ -297,11 +324,4 @@ export default function RegistrationForm() {
       </div>
     </div>
   );
-  // Make the Turnstile callback available globally
-if (typeof window !== 'undefined') {
-  window.onTurnstileSuccess = (token) => {
-    setTurnstileToken(token);
-    setTurnstileError(false);
-  };
-}
 }
