@@ -13,7 +13,6 @@
     "wrangler": "^3.0.0"
   },
   "dependencies": {
-    "@upstash/redis": "^1.24.0",
     "firebase": "^12.14.0"
   }
 }

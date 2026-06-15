@@ -1,10 +1,6 @@
-import { Redis } from '@upstash/redis';
-
 interface Env {
   RATE_LIMIT_KV: KVNamespace;
   WORKER_ALLOWED_ORIGIN?: string;
-  UPSTASH_REDIS_REST_URL?: string;
-  UPSTASH_REDIS_REST_TOKEN?: string;
   FIREBASE_API_KEY: string;
   FIREBASE_PROJECT_ID: string;
 }
@@ -14,15 +10,6 @@ const RATE_LIMIT_WINDOW_SECONDS = 60;
 const RATE_LIMIT_REQUESTS = 30;
 const SUBMISSION_CACHE_TTL = 60 * 15; // 15 minutes
 const IMAGE_CACHE_TTL = 60 * 60 * 24; // 24 hours
-
-let redisClient: Redis | null = null;
-
-function getRedis(env: Env) {
-  if (redisClient) return redisClient;
-  if (!env.UPSTASH_REDIS_REST_URL || !env.UPSTASH_REDIS_REST_TOKEN) return null;
-  redisClient = new Redis({ url: env.UPSTASH_REDIS_REST_URL, token: env.UPSTASH_REDIS_REST_TOKEN });
-  return redisClient;
-}
 
 function buildCorsHeaders(origin: string) {
   return {
@@ -118,29 +105,19 @@ async function getSubmissionFromFirestore(id: string, env: Env) {
 }
 
 async function rateLimit(clientId: string, env: Env) {
-  const redis = getRedis(env);
-  if (!redis) {
-    return true;
-  }
   const key = `rate_limit:${clientId}`;
-  const count = Number(await redis.incr(key));
-  if (count === 1) {
-    await redis.expire(key, RATE_LIMIT_WINDOW_SECONDS);
-  }
+  const current = await env.RATE_LIMIT_KV.get<number>(key, 'json');
+  const count = (current ?? 0) + 1;
+  await env.RATE_LIMIT_KV.put(key, JSON.stringify(count), { expirationTtl: RATE_LIMIT_WINDOW_SECONDS });
   return count <= RATE_LIMIT_REQUESTS;
 }
 
 async function cacheGet(key: string, env: Env) {
-  const redis = getRedis(env);
-  if (!redis) return null;
-  const value = await redis.get(key);
-  return value ? JSON.parse(value as string) : null;
+  return await env.RATE_LIMIT_KV.get(key, 'json');
 }
 
 async function cacheSet(key: string, value: unknown, ttl: number, env: Env) {
-  const redis = getRedis(env);
-  if (!redis) return;
-  await redis.set(key, JSON.stringify(value), { ex: ttl });
+  await env.RATE_LIMIT_KV.put(key, JSON.stringify(value), { expirationTtl: ttl });
 }
 
 function encodeBase64(bytes: Uint8Array) {

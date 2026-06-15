@@ -1,6 +1,6 @@
 # Backend (Cloudflare Worker)
 
-This backend is implemented as a Cloudflare Worker API and supports form submissions to Firebase, plus Redis-based rate limiting and caching.
+This backend is implemented as a Cloudflare Worker API and supports form submissions to Firebase, plus Workers KV-based rate limiting and caching.
 
 Install and run the Worker locally:
 
@@ -20,8 +20,7 @@ API endpoints:
 Required environment variables:
 
 - `WORKER_ALLOWED_ORIGIN` — accepted frontend origin for CORS.
-- `UPSTASH_REDIS_REST_URL` — Upstash Redis REST URL.
-- `UPSTASH_REDIS_REST_TOKEN` — Upstash Redis REST token.
+- `RATE_LIMIT_KV` - Cloudflare Workers KV binding used for rate limiting and caching.
 - `FIREBASE_API_KEY` — Firebase API key.
 - `FIREBASE_PROJECT_ID` — Firebase project ID.
 
