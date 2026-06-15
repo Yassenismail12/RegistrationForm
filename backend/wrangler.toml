@@ -1,9 +1,8 @@
 # Wrangler configuration for Cloudflare Worker deployment
-name = "yly-backend-worker"
+name = "registrationform"
 main = "src/index.ts"
 compatibility_date = "2026-06-11"
 
-env = "production"
 
 
 [observability]
