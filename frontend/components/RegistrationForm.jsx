@@ -173,7 +173,7 @@ export default function RegistrationForm() {
                   {errors.fullNameAr && <span className="error">{errors.fullNameAr}</span>}
                 </div>
                 <div className="field-group">
-                  <label>٢ـ الرقم القومي</label>
+                  <label>٣ـ الرقم القومي</label>
                   <input name="nationalId" value={formData.nationalId} onChange={handleChange} placeholder="مكوّن من 14 رقم" maxLength={14} />
                   {errors.nationalId && <span className="error">{errors.nationalId}</span>}
                 </div>
@@ -181,7 +181,7 @@ export default function RegistrationForm() {
               <div className="divider" />
               <div className="column">
                 <div className="field-group">
-                  <label>٣ـ رقم الواتساب</label>
+                  <label>٢ـ رقم الواتساب</label>
                   <input name="whatsapp" value={formData.whatsapp} onChange={handleChange} placeholder="رقم الواتساب" />
                   {errors.whatsapp && <span className="error">{errors.whatsapp}</span>}
                 </div>
@@ -207,7 +207,7 @@ export default function RegistrationForm() {
                   {errors.governorate && <span className="error">{errors.governorate}</span>}
                 </div>
                 <div className="field-group">
-                  <label>٦ـ الجامعة</label>
+                  <label>٧ـ الجامعة</label>
                   <input name="university" value={formData.university} onChange={handleChange} placeholder="الجامعة" />
                   {errors.university && <span className="error">{errors.university}</span>}
                 </div>
@@ -215,7 +215,7 @@ export default function RegistrationForm() {
               <div className="divider" />
               <div className="column">
                 <div className="field-group">
-                  <label>٧ـ الكلية</label>
+                  <label>٦ـ الكلية</label>
                   <input name="faculty" value={formData.faculty} onChange={handleChange} placeholder="الكلية" />
                   {errors.faculty && <span className="error">{errors.faculty}</span>}
                 </div>

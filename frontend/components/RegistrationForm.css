@@ -1,5 +1,9 @@
 /* Copied styling from original project */
 /* ── PAGE ── */
+body {
+  margin: 0;
+  padding: 0;
+}
 .page-wrapper {
   min-height: 100vh;
   display: flex;
@@ -8,10 +12,29 @@
   padding: 24px;
   direction: rtl;
   font-family: "Beiruti", sans-serif;
+  background-image: url('/assets/Background-Photo.jpeg');
+  background-size:cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+  overflow: hidden;
+}
+
+.page-wrapper::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(1px);
+  z-index: 0;
+}
+
+.page-wrapper > .form-container {
+  position: relative;
+  z-index: 1;
 }
 
 .form-container {
-  background: linear-gradient(160deg, #f0f4ff 0%, #e8f0fe 100%);
+  background: linear-gradient(160deg, #f0f4ffec 0%, #e8f0feb9 100%);
   border-radius: 24px;
   padding: 32px 40px 28px;
   width: 780px;
@@ -32,8 +55,8 @@
   flex-shrink: 0;
 }
 .leading-logo-img {
-  height: 170px;
-  width: 170px;
+  height: 150px;
+  width: 150px;
   object-fit: contain;
   flex-shrink: 0;
 }
@@ -79,12 +102,12 @@
   flex-shrink: 0;
 }
 .step-circle.completed {
-  background: #1a3a6b;
+  background: #1034A8;
   color: white;
 }
 .step-circle.active {
   background: white;
-  border: 3px solid #1a3a6b;
+  border: 3px solid #1034A8;
 }
 .step-circle.inactive {
   background: #ccc;
@@ -97,7 +120,7 @@
   transition: background 0.3s;
 }
 .step-line.completed {
-  background: #1a3a6b;
+  background: #1034A8;
 }
 
 .form-body {
@@ -130,9 +153,9 @@
   gap: 4px;
 }
 .field-group label {
-  font-size: 14px;
+  font-size: 17px;
   font-weight: 700;
-  color: #1a3a6b;
+  color: #1034A8;
   text-align: right;
   font-family: "Playpen Sans Arabic", sans-serif;
 }
@@ -143,7 +166,7 @@
   background: transparent;
   padding: 6px 4px;
   font-family: "Beiruti", sans-serif;
-  font-size: 13px;
+  font-size: 15px;
   color: #555;
   text-align: right;
   outline: none;
@@ -154,8 +177,8 @@
 }
 .field-group input:focus,
 .field-group select:focus {
-  border-bottom-color: #1a3a6b;
-  color: #1a3a6b;
+  border-bottom-color: #1034A8;
+  color: #1034A8;
 }
 .error {
   color: #e53e3e;
@@ -184,12 +207,12 @@
     box-shadow 0.15s;
 }
 .btn-next {
-  background: #1a3a6b;
+  background: #1034A8;
   color: white;
 }
 .btn-prev {
   background: #e0b842;
-  color: #1a3a6b;
+  color: #1034A8;
 }
 .btn-next:hover,
 .btn-prev:hover {
@@ -209,7 +232,7 @@
   font-weight: 700;
   cursor: pointer;
   border: none;
-  background: #27ae60;
+  background: #1034A8;
   color: white;
   transition:
     transform 0.15s,
@@ -227,7 +250,7 @@
 .step-title {
   font-size: 25px;
   font-weight: 700;
-  color: #1a3a6b;
+  color: #1034A8;
   text-align: center;
   margin-bottom: 8px;
   font-family: "Playpen Sans Arabic", sans-serif;
@@ -241,9 +264,9 @@
   text-align: center;
 }
 .welcome-section h2 {
-  font-size: 24px;
+  font-size: 35px;
   font-weight: 700;
-  color: #1a3a6b;
+  color: #1034A8;
   margin: 0;
   font-family: "Playpen Sans Arabic", sans-serif;
 }
@@ -276,7 +299,7 @@
 .review-group h4 {
   font-size: 15px;
   font-weight: 700;
-  color: #1a3a6b;
+  color: #1034A8;
   margin: 0 0 8px 0;
   border-bottom: 2px solid #e0b842;
   padding-bottom: 8px;
@@ -307,7 +330,7 @@
 .success-page h2 {
   font-size: 28px;
   font-weight: 700;
-  color: #1a3a6b;
+  color: #1034A8;
   margin: 0;
   font-family: "Playpen Sans Arabic", sans-serif;
 }
@@ -320,15 +343,14 @@
 }
 @media (max-width: 600px) {
   .form-container {
-    padding: 20px 16px;
-    /* overflow:hidden; */
+    padding: 20px 20px;
   }
   .ministry-logo-img {
     height: 80px;
   }
   .leading-logo-img {
-    height: 80px;
-    width: 80px;
+    height: 65px;
+    width: 65px;
   }
   .title-img-sub {
     height: 50px;
