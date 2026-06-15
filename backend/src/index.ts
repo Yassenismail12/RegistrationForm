@@ -13,7 +13,11 @@ const RATE_LIMIT_REQUESTS = 30;
 const SUBMISSION_CACHE_TTL = 60 * 15; // 15 minutes
 const PAGE_DATA_CACHE_TTL = 60 * 60 * 6; // 6 hours
 const IMAGE_CACHE_TTL = 60 * 60 * 24; // 24 hours
-
+function toEnglishNumbers(str: string): string {
+  return str
+    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+    .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06F0));
+}
 const PAGE_DATA = {
   governorates: [
     'القاهرة','الجيزة','الإسكندرية','الدقهلية','البحيرة',
@@ -23,7 +27,7 @@ const PAGE_DATA = {
     'كفر الشيخ','مطروح','الأقصر','قنا','شمال سيناء','سوهاج','البحر الأحمر',
   ],
   studyYears: ['الأولى','الثانية','الثالثة','الرابعة','الخامسة','السادسة','خريج'],
-  howKnowAboutUs: ['الأصدقاء', 'فيسبوك', 'إنستجرام', 'تيكتوك', 'تويتر', 'لينكد ان', 'الاشلرينج', 'اخرى'],
+  howKnowAboutUs: ['الأصدقاء', 'فيسبوك', 'إنستجرام', 'تيكتوك', 'تويتر', 'لينكد ان', 'الاشرينج', 'اخرى'],
 };
 
 function buildCorsHeaders(origin: string) {
@@ -86,10 +90,16 @@ function parseFirestoreDocument(doc: any) {
 }
 
 async function saveToFirestore(body: Record<string, any>, env: Env) {
+  const { turnstileToken, ...formFields } = body;
+
+  // Normalize numeric fields
+  formFields.nationalId = toEnglishNumbers(String(formFields.nationalId ?? ''));
+  formFields.whatsapp   = toEnglishNumbers(String(formFields.whatsapp   ?? ''));
+
   const url = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/applicants?key=${env.FIREBASE_API_KEY}`;
   const payload = {
     fields: firestoreFieldsFromObject({
-      ...body,
+      ...formFields,          // ✅ formFields not body — no turnstileToken, normalized numbers
       submittedAt: new Date().toISOString(),
       source: 'Cloudflare-Worker',
     }),

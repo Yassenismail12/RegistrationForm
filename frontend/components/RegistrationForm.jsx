@@ -14,7 +14,12 @@ const DEFAULT_HOW_YOU_KNOW_US = ['الأصدقاء', 'فيسبوك', 'إنستج
 
 const STORAGE_KEY_FORM = 'yly_registration_form_data';
 const STORAGE_KEY_PAGE_DATA = 'yly_registration_page_data';
-
+// Converts Arabic-Indic and Extended Arabic-Indic digits to Western digits
+function toEnglishNumbers(str) {
+  return str
+    .replace(/[٠-٩]/g, d => d.charCodeAt(0) - 0x0660)  // Arabic-Indic ٠١٢٣٤٥٦٧٨٩
+    .replace(/[۰-۹]/g, d => d.charCodeAt(0) - 0x06F0); // Extended Arabic-Indic
+}
 export default function RegistrationForm() {
   const [pageData, setPageData] = useState({
     governorates: DEFAULT_GOVERNORATES,
@@ -105,41 +110,74 @@ export default function RegistrationForm() {
     };
   }, []);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => {
-      const next = { ...prev, [name]: value };
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem(STORAGE_KEY_FORM, JSON.stringify(next));
-      }
-      return next;
-    });
-    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
-  };
+const handleChange = (e) => {
+  const { name, value } = e.target;
 
-  const validateForm = () => {
-    const newErrors = {};
+  // Fields that should only contain numbers — auto-convert Arabic digits
+  const numericFields = ['nationalId', 'whatsapp'];
+  const converted = numericFields.includes(name) ? toEnglishNumbers(value) : value;
 
-    if (!formData.fullNameAr.trim()) newErrors.fullNameAr = 'الاسم العربي رباعي مطلوب';
-    if (!/^[0-9]{14}$/.test(formData.nationalId)) newErrors.nationalId = 'الرقم القومي يجب أن يكون 14 رقمًا';
-    if (!/^[0-9]{10,11}$/.test(formData.whatsapp)) newErrors.whatsapp = 'رقم واتساب غير صحيح';
-    if (!formData.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'الايميل غير صحيح';
+  setFormData(prev => ({ ...prev, [name]: converted }));
+  if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
+};
 
-    if (!formData.governorate) newErrors.governorate = 'اختر المحافظة';
-    if (!formData.university.trim()) newErrors.university = 'الجامعة مطلوبة';
-    if (!formData.faculty.trim()) newErrors.faculty = 'الكلية مطلوبة';
-    if (!formData.studyYear) newErrors.studyYear = 'اختر الفرقة';
+const validateForm = () => {
+  const newErrors = {};
 
-    if (!formData.volunteeredBefore) newErrors.volunteeredBefore = 'هل تطوعت من قبل مطلوب';
-    if (formData.volunteeredBefore === 'yes' && !formData.volunteerDetails.trim()) {
-      newErrors.volunteerDetails = 'اشرح ماذا تطوعت فيه';
-    }
-    if (!formData.howKnowAboutUs) newErrors.howKnowAboutUs = 'كيف عرفت عننا مطلوب';
+  // Full Arabic name — must be 4 words minimum
+  const nameParts = formData.fullNameAr.trim().split(/\s+/);
+  if (!formData.fullNameAr.trim()) {
+    newErrors.fullNameAr = 'الاسم الرباعي مطلوب';
+  } else if (nameParts.length < 4) {
+    newErrors.fullNameAr = 'يجب إدخال الاسم رباعياً على الأقل';
+  } else if (!/^[\u0600-\u06FF\s]+$/.test(formData.fullNameAr.trim())) {
+    newErrors.fullNameAr = 'الاسم يجب أن يكون بالعربية فقط';
+  }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  // National ID — 14 digits, starts with 2 or 3
+  if (!formData.nationalId) {
+    newErrors.nationalId = 'الرقم القومي مطلوب';
+  } else if (!/^[23][0-9]{13}$/.test(formData.nationalId)) {
+    newErrors.nationalId = 'الرقم القومي يجب أن يكون 14 رقمًا ويبدأ بـ 2 أو 3';
+  }
 
+  // WhatsApp — Egyptian number: 01x with 10 or 11 digits
+  if (!formData.whatsapp) {
+    newErrors.whatsapp = 'رقم الواتساب مطلوب';
+  } else if (!/^(01)[0125][0-9]{8}$/.test(formData.whatsapp)) {
+    newErrors.whatsapp = 'رقم واتساب مصري غير صحيح (مثال: 01012345678)';
+  }
+
+  // Email
+  if (!formData.email.trim()) {
+    newErrors.email = 'الايميل مطلوب';
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    newErrors.email = 'صيغة الايميل غير صحيحة';
+  }
+
+  // Dropdowns & required fields
+  if (!formData.governorate)       newErrors.governorate       = 'اختر المحافظة';
+  if (!formData.university.trim()) newErrors.university        = 'الجامعة مطلوبة';
+  if (!formData.faculty.trim())    newErrors.faculty           = 'الكلية مطلوبة';
+  if (!formData.studyYear)         newErrors.studyYear         = 'اختر الفرقة الدراسية';
+  if (!formData.volunteeredBefore) newErrors.volunteeredBefore = 'هذا الحقل مطلوب';
+  if (formData.volunteeredBefore === 'yes' && !formData.volunteerDetails.trim()) {
+    newErrors.volunteerDetails = 'يرجى شرح خبرتك التطوعية';
+  }
+  if (!formData.howKnowAboutUs)    newErrors.howKnowAboutUs   = 'هذا الحقل مطلوب';
+
+  setErrors(newErrors);
+  // Scroll to first error field
+const firstErrorKey = Object.keys(newErrors)[0];
+if (firstErrorKey) {
+  const el = document.querySelector(`[name="${firstErrorKey}"]`);
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.focus();
+  }
+}
+  return Object.keys(newErrors).length === 0;
+};
  const handleSubmit = async () => {
     if (!validateForm()) {
       return;
