@@ -59,3 +59,4 @@ build/
 tmp/
 temp/
 *.tmp
+backend/.wrangler/state/v3/kv/your-kv-namespace-id/blobs/0b7d88fcc0a9d13eb47ca48b441b5fcc424ceab88b74897d786d360e0d4fbd290000019ec7668180
