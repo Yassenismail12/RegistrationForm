@@ -29,14 +29,21 @@ export default function RegistrationForm() {
   const turnstileRef = useRef(null);
 
 useEffect(() => {
-  if (step !== 5) return;  // only run on step 5
+  if (step !== 5) return;
 
-  const renderWidget = () => {
-    if (!window.turnstile || !turnstileRef.current) return;
-    // clear any previous render
-    turnstileRef.current.innerHTML = '';
-    window.turnstile.render(turnstileRef.current, {
-      sitekey: '0x4AAAAADkzJ8tcT5glStf5',  // ← correct key
+  let widgetId = null;
+
+  const tryRender = () => {
+    if (!turnstileRef.current) return;
+    if (typeof window.turnstile === 'undefined') return;
+
+    // remove old widget if re-entering step 5
+    if (widgetId !== null) {
+      try { window.turnstile.remove(widgetId); } catch {}
+    }
+
+    widgetId = window.turnstile.render(turnstileRef.current, {
+      sitekey: '0x4AAAAADkzJ8tcT5glStf5',
       theme: 'light',
       language: 'ar',
       callback: (token) => {
@@ -46,17 +53,24 @@ useEffect(() => {
     });
   };
 
-  // If script already loaded, render immediately
-  if (window.turnstile) {
-    renderWidget();
-  } else {
-    // Wait for script to load
-    const script = document.querySelector('script[src*="turnstile"]');
-    if (script) {
-      script.addEventListener('load', renderWidget);
-      return () => script.removeEventListener('load', renderWidget);
+  // Poll every 100ms until window.turnstile is ready (max 5s)
+  let attempts = 0;
+  const interval = setInterval(() => {
+    attempts++;
+    if (typeof window.turnstile !== 'undefined') {
+      clearInterval(interval);
+      tryRender();
+    } else if (attempts > 50) {
+      clearInterval(interval); // give up after 5s
     }
-  }
+  }, 100);
+
+  return () => {
+    clearInterval(interval);
+    if (widgetId !== null && typeof window.turnstile !== 'undefined') {
+      try { window.turnstile.remove(widgetId); } catch {}
+    }
+  };
 }, [step]);
   const handleChange = (e) => {
     const { name, value } = e.target;
