@@ -1,9 +1,10 @@
 interface Env {
-  KV: KVNamespace;
   WORKER_ALLOWED_ORIGIN?: string;
   FIREBASE_API_KEY: string;
   FIREBASE_PROJECT_ID: string;
   TURNSTILE_SECRET: string;
+  SUPABASE_URL: string;
+  SUPABASE_SERVICE_KEY: string;
 }
 
 const DEFAULT_ORIGIN = 'https://registration-form.pages.dev';
@@ -118,20 +119,67 @@ async function getSubmissionFromFirestore(id: string, env: Env) {
   return parseFirestoreDocument(data);
 }
 
-async function rateLimit(clientId: string, env: Env) {
-  const key = `rate_limit:${clientId}`;
-  const current = await env.KV.get<number>(key, 'json');
-  const count = (current ?? 0) + 1;
-  await env.KV.put(key, JSON.stringify(count), { expirationTtl: RATE_LIMIT_WINDOW_SECONDS });
+// ─── Supabase KV helpers ───────────────────────────────────────────────────────
+
+async function supabaseGet(key: string, env: Env): Promise<any> {
+  const res = await fetch(
+    `${env.SUPABASE_URL}/rest/v1/kv_store?key=eq.${encodeURIComponent(key)}&select=value,expires_at&limit=1`,
+    { headers: supabaseHeaders(env) }
+  );
+  const rows: any[] = await res.json();
+  if (!rows.length) return null;
+  const row = rows[0];
+  // Check expiry
+  if (row.expires_at && new Date(row.expires_at) < new Date()) {
+    await supabaseDelete(key, env); // clean up
+    return null;
+  }
+  try { return JSON.parse(row.value); } catch { return row.value; }
+}
+
+async function supabaseSet(key: string, value: unknown, ttlSeconds: number | null, env: Env): Promise<void> {
+  const expires_at = ttlSeconds
+    ? new Date(Date.now() + ttlSeconds * 1000).toISOString()
+    : null;
+  await fetch(`${env.SUPABASE_URL}/rest/v1/kv_store`, {
+    method: 'POST',
+    headers: {
+      ...supabaseHeaders(env),
+      'Prefer': 'resolution=merge-duplicates', // upsert
+    },
+    body: JSON.stringify({ key, value: JSON.stringify(value), expires_at }),
+  });
+}
+
+async function supabaseDelete(key: string, env: Env): Promise<void> {
+  await fetch(
+    `${env.SUPABASE_URL}/rest/v1/kv_store?key=eq.${encodeURIComponent(key)}`,
+    { method: 'DELETE', headers: supabaseHeaders(env) }
+  );
+}
+
+function supabaseHeaders(env: Env) {
+  return {
+    'Content-Type'  : 'application/json',
+    'apikey'        : env.SUPABASE_SERVICE_KEY,
+    'Authorization' : `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+  };
+}
+
+async function rateLimit(clientId: string, env: Env): Promise<boolean> {
+  const key     = `rate_limit:${clientId}`;
+  const current = (await supabaseGet(key, env) as number) ?? 0;
+  const count   = current + 1;
+  await supabaseSet(key, count, RATE_LIMIT_WINDOW_SECONDS, env);
   return count <= RATE_LIMIT_REQUESTS;
 }
 
-async function cacheGet(key: string, env: Env) {
-  return await env.KV.get(key, 'json');
+async function cacheGet(key: string, env: Env): Promise<any> {
+  return await supabaseGet(key, env);
 }
 
-async function cacheSet(key: string, value: unknown, ttl: number, env: Env) {
-  await env.KV.put(key, JSON.stringify(value), { expirationTtl: ttl });
+async function cacheSet(key: string, value: unknown, ttl: number, env: Env): Promise<void> {
+  await supabaseSet(key, value, ttl, env);
 }
 
 function encodeBase64(bytes: Uint8Array) {

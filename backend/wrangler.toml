@@ -23,13 +23,10 @@ head_sampling_rate = 1
 [build]
 command = "npm install"
 
-[[kv_namespaces]]
-binding = "KV"
-id = "ee2a1d78859245b98546175b2e3d9057"
-preview_id = "d08e0f415f764532a12972aa51a1b4d1"
 [vars]
 # Backend environment
 WORKER_ALLOWED_ORIGIN = "https://registration-form.pages.dev"
 FIREBASE_API_KEY = "AIzaSyAmmtTkhrui4JKfYM1Pb2ez1qv6XZTaxWw"
 FIREBASE_PROJECT_ID = "yly-registration"
 TURNSTILE_SECRET = "0x4AAAAAADkzJ3SyemTP9xIG58t23IJIV38"
+SUPABASE_URL  = "https://ztjdwsrhmtwlynomnovu.supabase.co"
