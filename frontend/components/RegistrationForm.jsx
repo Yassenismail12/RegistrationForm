@@ -189,16 +189,16 @@ export default function RegistrationForm() {
             <p>تابعنا من خلال المنصات: </p>
             <div className="social-links">
               <a href="https://www.instagram.com/ylyministry" target="_blank" rel="noreferrer" className="social-link">
-                <img src="https://img.icons8.com/fluency/48/000000/instagram-new.png" alt="Instagram" className="social-icon" /> Instagram
+                <img src="https://img.icons8.com/fluency/48/000000/instagram-new.png" alt="Instagram" className="social-icon" />
               </a>
               <a href="https://www.tiktok.com/@ylyministry?_r=1&_t=ZS-97EG3HU4pOO" target="_blank" rel="noreferrer" className="social-link">
-                <img src="https://img.icons8.com/fluency/48/000000/tiktok.png" alt="TikTok" className="social-icon" /> TikTok
+                <img src="https://img.icons8.com/fluency/48/000000/tiktok.png" alt="TikTok" className="social-icon" />
               </a>
               <a href="https://www.facebook.com/Ylyministryy/" target="_blank" rel="noreferrer" className="social-link">
-                <img src="https://img.icons8.com/fluency/48/000000/facebook-new.png" alt="Facebook" className="social-icon" /> Facebook
+                <img src="https://img.icons8.com/fluency/48/000000/facebook-new.png" alt="Facebook" className="social-icon" />
               </a>
               <a href="https://eg.linkedin.com/company/ylyministry" target="_blank" rel="noreferrer" className="social-link">
-                <img src="https://img.icons8.com/fluency/48/000000/linkedin-circled.png" alt="LinkedIn" className="social-icon" /> LinkedIn
+                <img src="https://img.icons8.com/fluency/48/000000/linkedin-circled.png" alt="LinkedIn" className="social-icon" />
               </a>
             </div>
           </div>
