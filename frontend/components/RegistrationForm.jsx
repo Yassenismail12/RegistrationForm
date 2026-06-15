@@ -43,7 +43,7 @@ useEffect(() => {
     }
 
     widgetId = window.turnstile.render(turnstileRef.current, {
-      sitekey: '0x4AAAAADkzJ8tcT5glStf5',
+      sitekey: '0x4AAAAAADkzJ8tcT5glStf5',
       theme: 'light',
       language: 'ar',
       callback: (token) => {
