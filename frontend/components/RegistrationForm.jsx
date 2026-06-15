@@ -201,8 +201,8 @@ export default function RegistrationForm() {
         <div className="form-header">
           <img src="/assets/YLY-logo.png" alt="Leading Youth" className="leading-logo-img" />
           <div className="form-title">
-            <img src="/assets/tasgeel.png" alt="التسجيل" className="title-img-sub" />
-            <img src="/assets/S8.png" alt="الموسم الثامن" className="title-img-main" />
+            <img src="/assets/Wzara.png" alt="وزارة الشباب والرياضة" className="title-img-sub" />
+            <img src="/assets/ITIHAD.png" alt=" اتحاد شباب يدير شباب" className="title-img-main" />
           </div>
           <img src="/assets/Ministry.png" alt="وزارة الشباب والرياضة" className="ministry-logo-img" />
         </div>
