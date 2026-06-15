@@ -199,7 +199,7 @@ export default function RegistrationForm() {
       <div className="form-container">
 
         <div className="form-header">
-          <img src="/assets/yly-logo.png" alt="Leading Youth" className="leading-logo-img" />
+          <img src="/assets/YLY-logo.png" alt="Leading Youth" className="leading-logo-img" />
           <div className="form-title">
             <img src="/assets/tasgeel.png" alt="التسجيل" className="title-img-sub" />
             <img src="/assets/S8.png" alt="الموسم الثامن" className="title-img-main" />
