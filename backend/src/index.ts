@@ -5,7 +5,7 @@ interface Env {
   FIREBASE_PROJECT_ID: string;
 }
 
-const DEFAULT_ORIGIN = 'https://<your-pages-subdomain>.pages.dev';
+const DEFAULT_ORIGIN = 'https://registration-form.pages.dev';
 const RATE_LIMIT_WINDOW_SECONDS = 60;
 const RATE_LIMIT_REQUESTS = 30;
 const SUBMISSION_CACHE_TTL = 60 * 15; // 15 minutes
