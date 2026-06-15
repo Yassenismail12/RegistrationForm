@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 
-const GOVERNORATES = [
+const DEFAULT_GOVERNORATES = [
   'القاهرة','الجيزة','الإسكندرية','الدقهلية','البحيرة',
   'الفيوم','الغربية','الإسماعيلية','المنوفية','المنيا',
   'القليوبية','الوادي الجديد','السويس','أسوان','أسيوط',
@@ -8,11 +8,19 @@ const GOVERNORATES = [
   'كفر الشيخ','مطروح','الأقصر','قنا','شمال سيناء','سوهاج','البحر الأحمر',
 ];
 
-const STUDY_YEARS = ['الأولى','الثانية','الثالثة','الرابعة','الخامسة','السادسة','خريج'];
+const DEFAULT_STUDY_YEARS = ['الأولى','الثانية','الثالثة','الرابعة','الخامسة','السادسة','خريج'];
 
-const HOW_YOU_KNOW_US = ['الأصدقاء', 'فيسبوك', 'إنستجرام', 'تيكتوك', 'تويتر', 'لينكد ان', 'الاشلرينج', 'اخرى'];
+const DEFAULT_HOW_YOU_KNOW_US = ['الأصدقاء', 'فيسبوك', 'إنستجرام', 'تيكتوك', 'تويتر', 'لينكد ان', 'الاشلرينج', 'اخرى'];
+
+const STORAGE_KEY_FORM = 'yly_registration_form_data';
+const STORAGE_KEY_PAGE_DATA = 'yly_registration_page_data';
 
 export default function RegistrationForm() {
+  const [pageData, setPageData] = useState({
+    governorates: DEFAULT_GOVERNORATES,
+    studyYears: DEFAULT_STUDY_YEARS,
+    howKnowAboutUs: DEFAULT_HOW_YOU_KNOW_US,
+  });
   const [formData, setFormData] = useState({
     fullNameAr: '', nationalId: '', whatsapp: '', email: '',
     governorate: '', university: '', faculty: '', studyYear: '',
@@ -27,6 +35,36 @@ export default function RegistrationForm() {
   const turnstileRef = useRef(null);
 
   useEffect(() => {
+    const savedFormData = typeof window !== 'undefined' ? window.localStorage.getItem(STORAGE_KEY_FORM) : null;
+    const savedPageData = typeof window !== 'undefined' ? window.localStorage.getItem(STORAGE_KEY_PAGE_DATA) : null;
+
+    if (savedFormData) {
+      try {
+        setFormData(JSON.parse(savedFormData));
+      } catch (error) {
+        console.warn('Failed to parse saved form data', error);
+      }
+    }
+
+    if (savedPageData) {
+      try {
+        setPageData(JSON.parse(savedPageData));
+      } catch (error) {
+        console.warn('Failed to parse saved page data', error);
+      }
+    }
+
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8787';
+    fetch(`${apiBase}/api/page-data`, { method: 'GET' })
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (data) {
+          setPageData(data);
+          window.localStorage.setItem(STORAGE_KEY_PAGE_DATA, JSON.stringify(data));
+        }
+      })
+      .catch((err) => console.warn('Unable to load page metadata', err));
+
     let widgetId = null;
 
     const tryRender = () => {
@@ -69,7 +107,13 @@ export default function RegistrationForm() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      const next = { ...prev, [name]: value };
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(STORAGE_KEY_FORM, JSON.stringify(next));
+      }
+      return next;
+    });
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
@@ -111,17 +155,22 @@ export default function RegistrationForm() {
       const res = await fetch(`${apiBase}/api/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, turnstileToken }),  
+        body: JSON.stringify({ ...formData, turnstileToken }),
       });
 
-      if (!res.ok) throw new Error('network');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.error || 'network');
+      }
       
       const data = await res.json();
       console.log("تم الإرسال بنجاح، رقم المستند:", data.id);
       
       
-      setSubmitted(true); 
-      
+      setSubmitted(true);
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem(STORAGE_KEY_FORM);
+      }
     } catch (err) {
       console.error(err);
       setSubmitError('فشل إرسال البيانات. تأكد إن السيرفر (Backend) شغال أولاً.');
@@ -150,7 +199,7 @@ export default function RegistrationForm() {
       <div className="form-container">
 
         <div className="form-header">
-          <img src="/assets/yly.png" alt="Leading Youth" className="leading-logo-img" />
+          <img src="/assets/yly-logo.png" alt="Leading Youth" className="leading-logo-img" />
           <div className="form-title">
             <img src="/assets/tasgeel.png" alt="التسجيل" className="title-img-sub" />
             <img src="/assets/S8.png" alt="الموسم الثامن" className="title-img-main" />
@@ -202,7 +251,7 @@ export default function RegistrationForm() {
                   <label>٥ـ المحافظة</label>
                   <select name="governorate" value={formData.governorate} onChange={handleChange}>
                     <option value="">اختر المحافظة</option>
-                    {GOVERNORATES.map(g => <option key={g} value={g}>{g}</option>)}
+                    {pageData.governorates.map(g => <option key={g} value={g}>{g}</option>)}
                   </select>
                   {errors.governorate && <span className="error">{errors.governorate}</span>}
                 </div>
@@ -223,7 +272,7 @@ export default function RegistrationForm() {
                   <label>٨ـ الفرقة</label>
                   <select name="studyYear" value={formData.studyYear} onChange={handleChange}>
                     <option value="">اختر الفرقة</option>
-                    {STUDY_YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+                    {pageData.studyYears.map(y => <option key={y} value={y}>{y}</option>)}
                   </select>
                   {errors.studyYear && <span className="error">{errors.studyYear}</span>}
                 </div>
@@ -255,7 +304,7 @@ export default function RegistrationForm() {
                   <label>١٠ـ عرفت عننا منين؟</label>
                   <select name="howKnowAboutUs" value={formData.howKnowAboutUs} onChange={handleChange}>
                     <option value="">اختر المصدر</option>
-                    {HOW_YOU_KNOW_US.map(option => <option key={option} value={option}>{option}</option>)}
+                    {pageData.howKnowAboutUs.map(option => <option key={option} value={option}>{option}</option>)}
                   </select>
                   {errors.howKnowAboutUs && <span className="error">{errors.howKnowAboutUs}</span>}
                 </div>

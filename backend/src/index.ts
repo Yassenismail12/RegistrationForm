@@ -10,7 +10,20 @@ const DEFAULT_ORIGIN = 'https://registration-form.pages.dev';
 const RATE_LIMIT_WINDOW_SECONDS = 60;
 const RATE_LIMIT_REQUESTS = 30;
 const SUBMISSION_CACHE_TTL = 60 * 15; // 15 minutes
+const PAGE_DATA_CACHE_TTL = 60 * 60 * 6; // 6 hours
 const IMAGE_CACHE_TTL = 60 * 60 * 24; // 24 hours
+
+const PAGE_DATA = {
+  governorates: [
+    'القاهرة','الجيزة','الإسكندرية','الدقهلية','البحيرة',
+    'الفيوم','الغربية','الإسماعيلية','المنوفية','المنيا',
+    'القليوبية','الوادي الجديد','السويس','أسوان','أسيوط',
+    'بني سويف','بورسعيد','دمياط','الشرقية','جنوب سيناء',
+    'كفر الشيخ','مطروح','الأقصر','قنا','شمال سيناء','سوهاج','البحر الأحمر',
+  ],
+  studyYears: ['الأولى','الثانية','الثالثة','الرابعة','الخامسة','السادسة','خريج'],
+  howKnowAboutUs: ['الأصدقاء', 'فيسبوك', 'إنستجرام', 'تيكتوك', 'تويتر', 'لينكد ان', 'الاشلرينج', 'اخرى'],
+};
 
 function buildCorsHeaders(origin: string) {
   return {
@@ -199,6 +212,18 @@ export default {
     if (path === '/api/health' && request.method === 'GET') {
       logEvent('health_check', { clientId, path });
       return jsonResponse({ status: 'ok', ts: Date.now() }, 200, 'public, max-age=10, stale-while-revalidate=30', origin);
+    }
+
+    if (path === '/api/page-data' && request.method === 'GET') {
+      const cachedPageData = await cacheGet('page-data', env);
+      if (cachedPageData) {
+        logEvent('page_data_cached', { clientId, path });
+        return jsonResponse(cachedPageData, 200, 'public, max-age=3600, stale-while-revalidate=3600', origin);
+      }
+
+      await cacheSet('page-data', PAGE_DATA, PAGE_DATA_CACHE_TTL, env);
+      logEvent('page_data_served', { clientId, path, fromCache: false });
+      return jsonResponse(PAGE_DATA, 200, 'public, max-age=3600, stale-while-revalidate=3600', origin);
     }
 
     if (path === '/api/register' && request.method === 'POST') {
