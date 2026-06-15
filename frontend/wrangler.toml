@@ -2,3 +2,5 @@ name = "registration-form"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "./out"
+
+NEXT_PUBLIC_API_URL="https://registrationform.ylyunion.workers.dev"
