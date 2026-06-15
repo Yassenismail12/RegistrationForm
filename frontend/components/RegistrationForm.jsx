@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import StepIndicator from './StepIndicator';
-const [turnstileToken, setTurnstileToken] = useState('');
-const [turnstileError, setTurnstileError] = useState(false);
+
 const GOVERNORATES = [
   'القاهرة','الجيزة','الإسكندرية','الدقهلية','البحيرة',
   'الفيوم','الغربية','الإسماعيلية','المنوفية','المنيا',
@@ -25,7 +24,8 @@ export default function RegistrationForm() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState('');
-
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const [turnstileError, setTurnstileError] = useState(false);
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
