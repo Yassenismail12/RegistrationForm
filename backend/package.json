@@ -10,7 +10,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.202",
     "typescript": "^5.4.0",
-    "wrangler": "^3.0.0"
+    "wrangler": "^4.100.0"
   },
   "dependencies": {
     "firebase": "^12.14.0"
