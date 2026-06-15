@@ -251,5 +251,4 @@ export default {
 
     return jsonResponse({ error: 'Not found' }, 404, 'no-store', origin);
   },
-  
 };
