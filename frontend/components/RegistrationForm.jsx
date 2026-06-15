@@ -186,8 +186,21 @@ export default function RegistrationForm() {
           <div className="success-page">
             <div className="success-icon">✓</div>
             <h2>شكراً لتسجيلك</h2>
-            <p>يمكنك متابعه الموقع الرسمي الخاص بنا</p>
-            <button className="btn-submit" onClick={() => window.location.href = '/'}>العودة للرئيسية</button>
+            <p>تابعنا من خلال المنصات: </p>
+            <div className="social-links">
+              <a href="https://www.instagram.com/ylyministry" target="_blank" rel="noreferrer" className="social-link">
+                <img src="https://img.icons8.com/fluency/48/000000/instagram-new.png" alt="Instagram" className="social-icon" /> Instagram
+              </a>
+              <a href="https://www.tiktok.com/@ylyministry?_r=1&_t=ZS-97EG3HU4pOO" target="_blank" rel="noreferrer" className="social-link">
+                <img src="https://img.icons8.com/fluency/48/000000/tiktok.png" alt="TikTok" className="social-icon" /> TikTok
+              </a>
+              <a href="https://www.facebook.com/Ylyministryy/" target="_blank" rel="noreferrer" className="social-link">
+                <img src="https://img.icons8.com/fluency/48/000000/facebook-new.png" alt="Facebook" className="social-icon" /> Facebook
+              </a>
+              <a href="https://eg.linkedin.com/company/ylyministry" target="_blank" rel="noreferrer" className="social-link">
+                <img src="https://img.icons8.com/fluency/48/000000/linkedin-circled.png" alt="LinkedIn" className="social-icon" /> LinkedIn
+              </a>
+            </div>
           </div>
         </div>
       </div>
