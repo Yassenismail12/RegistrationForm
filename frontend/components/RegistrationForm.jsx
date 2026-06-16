@@ -316,17 +316,7 @@ if (
                   <input name="full_name" value={formData.full_name} onChange={handleChange} placeholder="الاسم العربي رباعي" />
                   {errors.full_name && <span className="error">{errors.full_name}</span>}
                 </div>
-                {/* Honeypot - hidden from real users */}
-{/* Honeypot — invisible to humans, bots fill it */}
-<input
-  name="website"
-  value={formData.website || ''}
-  onChange={handleChange}
-  tabIndex={-1}
-  autoComplete="off"
-  aria-hidden="true"
-  style={{ position: 'absolute', left: '-9999px', opacity: 0, pointerEvents: 'none' }}
-/>
+                
 <div className="field-group">
   <label>٣- السن</label>
   <input
