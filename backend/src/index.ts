@@ -1,3 +1,4 @@
+
 interface Env {
   WORKER_ALLOWED_ORIGIN?: string;
   FIREBASE_API_KEY: string;
