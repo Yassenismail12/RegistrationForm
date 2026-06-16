@@ -136,7 +136,7 @@ const handleChange = (e) => {
     return;
   }
   // Fields that should only contain numbers — auto-convert Arabic digits
-  const numericFields = ['whatsapp', ...(formData.isNonEgyptian ? [] : ['nationalId'])];
+  const numericFields = ['whatsapp', 'nationalId'];
   const converted = numericFields.includes(name) ? toEnglishNumbers(value) : value;
 
   setFormData(prev => ({ ...prev, [name]: converted }));
@@ -160,8 +160,6 @@ const validateForm = () => {
 if (formData.isNonEgyptian) {
   if (!formData.nationalId.trim()) {
     newErrors.nationalId = 'رقم الباسبور مطلوب';
-  } else if (!/^[A-Za-z0-9]{6,12}$/.test(formData.nationalId.trim())) {
-    newErrors.nationalId = 'صيغة رقم الباسبور غير صحيحة';
   }
 } else {
   if (!formData.nationalId) {
@@ -171,7 +169,7 @@ if (formData.isNonEgyptian) {
   }
 }
 
-  // WhatsApp — Egyptian number: 01x with 11 digits
+  // WhatsApp 
   if (!formData.whatsapp) {
     newErrors.whatsapp = 'رقم الواتساب مطلوب';
   }
@@ -342,7 +340,7 @@ if (firstErrorKey) {
     value={formData.nationalId}
     onChange={handleChange}
     placeholder={formData.isNonEgyptian ? 'رقم الباسبور' : 'مكوّن من 14 رقم'}
-    maxLength={formData.isNonEgyptian ? 12 : 14}
+    maxLength={formData.isNonEgyptian ? 100 : 14}
   />
   {errors.nationalId && <span className="error">{errors.nationalId}</span>}
 </div>
