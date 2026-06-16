@@ -289,6 +289,9 @@ body {
   font-size: 14px;
   color: #555;
   margin: 0;
+  text-decoration: none;
+  pointer-events: none;
+
 }
 .welcome-description {
   font-size: 15px;
