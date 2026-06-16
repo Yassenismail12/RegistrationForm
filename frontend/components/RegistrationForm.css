@@ -68,6 +68,13 @@ body {
   gap: 5px;
   flex: 1;
 }
+.form-title h2 {
+  font-size: 70px;
+  font-weight: 700;
+  color: #1034A8;
+   margin: 0;
+   font-family: "Beiruti", sans-serif;
+}
 .title-img-sub {
   height: 50px;
   width: auto;
@@ -266,6 +273,13 @@ body {
 }
 .welcome-section h2 {
   font-size: 35px;
+  font-weight: 700;
+  color: #1034A8;
+  margin: 0;
+  font-family: "Playpen Sans Arabic", sans-serif;
+}
+.welcome-section h3 {
+  font-size: 25px;
   font-weight: 700;
   color: #1034A8;
   margin: 0;

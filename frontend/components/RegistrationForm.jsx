@@ -38,6 +38,8 @@ export default function RegistrationForm() {
   const [turnstileToken, setTurnstileToken] = useState('');
   const [turnstileError, setTurnstileError] = useState(false);
   const turnstileRef = useRef(null);
+  const turnstileWidgetId = useRef(null);  
+
 
   useEffect(() => {
     const savedFormData = typeof window !== 'undefined' ? window.localStorage.getItem(STORAGE_KEY_FORM) : null;
@@ -59,6 +61,64 @@ export default function RegistrationForm() {
       }
     }
 
+useEffect(() => {
+  if (step !== 5) {
+    // User left step 5 — remove widget and reset token
+    if (turnstileWidgetId.current !== null && typeof window.turnstile !== 'undefined') {
+      try { window.turnstile.remove(turnstileWidgetId.current); } catch {}
+      turnstileWidgetId.current = null;
+    }
+    setTurnstileToken('');
+    return;
+  }
+
+  const tryRender = () => {
+    if (!turnstileRef.current || typeof window.turnstile === 'undefined') return;
+
+    // Remove any existing widget first
+    if (turnstileWidgetId.current !== null) {
+      try { window.turnstile.remove(turnstileWidgetId.current); } catch {}
+      turnstileWidgetId.current = null;
+    }
+
+    turnstileWidgetId.current = window.turnstile.render(turnstileRef.current, {
+      sitekey: '0x4AAAAAADkzJ8tcT5glStf5',
+      theme: 'light',
+      language: 'ar',
+      'refresh-expired': 'auto',        // ← auto-refresh when token expires
+      'retry': 'auto',                  // ← auto-retry on network failure
+      'retry-interval': 3000,           // ← retry every 3s
+      callback: (token) => {
+        setTurnstileToken(token);
+        setTurnstileError(false);
+      },
+      'expired-callback': () => {
+        // Token expired (after 300s) — reset so user must re-verify
+        setTurnstileToken('');
+      },
+      'error-callback': () => {
+        // Network/challenge error — reset
+        setTurnstileToken('');
+      },
+    });
+  };
+
+  // Poll until window.turnstile is ready
+  let attempts = 0;
+  const interval = setInterval(() => {
+    attempts++;
+    if (typeof window.turnstile !== 'undefined') {
+      clearInterval(interval);
+      tryRender();
+    } else if (attempts > 50) {
+      clearInterval(interval);
+    }
+  }, 100);
+
+  return () => {
+    clearInterval(interval);
+  };
+}, [step]);
     const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8787';
     fetch(`${apiBase}/api/page-data`, { method: 'GET' })
       .then((res) => res.ok ? res.json() : null)
@@ -69,8 +129,6 @@ export default function RegistrationForm() {
         }
       })
       .catch((err) => console.warn('Unable to load page metadata', err));
-
-    let widgetId = null;
 
     const tryRender = () => {
       if (!turnstileRef.current) return;
@@ -144,14 +202,10 @@ const validateForm = () => {
   // WhatsApp — Egyptian number: 01x with 10 or 11 digits
   if (!formData.whatsapp) {
     newErrors.whatsapp = 'رقم الواتساب مطلوب';
-  } else if (!/^(01)[0125][0-9]{8}$/.test(formData.whatsapp)) {
-    newErrors.whatsapp = 'رقم واتساب مصري غير صحيح (مثال: 01012345678)';
   }
 
   // Email
-  if (!formData.email.trim()) {
-    newErrors.email = 'الايميل مطلوب';
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
     newErrors.email = 'صيغة الايميل غير صحيحة';
   }
 
@@ -189,7 +243,7 @@ if (firstErrorKey) {
     setSubmitting(true);
     setSubmitError('');
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8787';
+      const apiBase = process.env.NEXT_PUBLIC_API_URL;
       const res = await fetch(`${apiBase}/api/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -211,7 +265,7 @@ if (firstErrorKey) {
       }
     } catch (err) {
       console.error(err);
-      setSubmitError('فشل إرسال البيانات. تأكد إن السيرفر (Backend) شغال أولاً.');
+      setSubmitError('حدث خطأ أثناء إرسال البيانات. يرجى المحاولة مرة أخرى.');
     } finally {
       setSubmitting(false);
     }
@@ -254,6 +308,7 @@ if (firstErrorKey) {
           <div className="form-title">
             <img src="/assets/Wzara.png" alt="وزارة الشباب والرياضة" className="title-img-sub" />
             <img src="/assets/ITIHAD.png" alt=" اتحاد شباب يدير شباب" className="title-img-main" />
+            <h2>YLY</h2>
           </div>
           <img src="/assets/Ministry.png" alt="وزارة الشباب والرياضة" className="ministry-logo-img" />
         </div>
@@ -261,6 +316,7 @@ if (firstErrorKey) {
         <div className="form-body">
           <div className="welcome-section">
             <h2>أهلاً بك في الموسم الثامن</h2>
+            <h3>٢٠٢٦ - ٢٠٢٧</h3>
           </div>
 
           <div className="step-content">
