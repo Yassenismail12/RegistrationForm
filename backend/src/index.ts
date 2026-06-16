@@ -21,8 +21,8 @@ type ApplicantPayload = {
 };
 
 const DEFAULT_ORIGIN = 'https://registration-form.pages.dev';
-const RATE_LIMIT_WINDOW_SECONDS = 60;
-const RATE_LIMIT_REQUESTS = 5;
+const RATE_LIMIT_WINDOW_SECONDS = 60 * 10;
+const RATE_LIMIT_REQUESTS = 3;
 const SUBMISSION_CACHE_TTL = 60 * 15;
 const PAGE_DATA_CACHE_TTL = 60 * 60 * 6;
 const IMAGE_CACHE_TTL = 60 * 60 * 24;
@@ -60,6 +60,19 @@ async function applicantExists(
     .first();
 
   return !!row;
+}
+
+function isLegitimateRequest(request: Request, allowedOrigin: string): boolean {
+  const origin = request.headers.get('Origin');
+  const referer = request.headers.get('Referer');
+  const contentType = request.headers.get('Content-Type') || '';
+  const userAgent = request.headers.get('User-Agent') || '';
+
+  const originOk = origin === allowedOrigin || referer?.startsWith(allowedOrigin);
+  const contentTypeOk = contentType.includes('application/json');
+  const uaOk = userAgent.includes('Mozilla');
+
+  return !!(originOk && contentTypeOk && uaOk);
 }
 function buildCorsHeaders(origin: string) {
   return {
@@ -215,14 +228,35 @@ function supabaseHeaders(env: Env) {
   };
 }
 
+// REPLACE this entire function
 async function rateLimit(clientId: string, env: Env): Promise<boolean> {
   const key = `rate_limit:${clientId}`;
-  const current = (await supabaseGet(key, env) as number) ?? 0;
-  const count = current + 1;
-  await supabaseSet(key, count, RATE_LIMIT_WINDOW_SECONDS, env);
+  const globalKey = `rate_limit:global`;
+
+  const [current, globalCount] = await Promise.all([
+    supabaseGet(key, env) as Promise<number | null>,
+    supabaseGet(globalKey, env) as Promise<number | null>,
+  ]);
+
+  const count = (current ?? 0) + 1;
+  const gCount = (globalCount ?? 0) + 1;
+
+  // Block if global submissions exceed 100/min (detect waves)
+  if (gCount > 100) return false;
+
+  await Promise.all([
+    supabaseSet(key, count, RATE_LIMIT_WINDOW_SECONDS, env),
+    supabaseSet(globalKey, gCount, 60, env), // global resets every 60s
+  ]);
+
   return count <= RATE_LIMIT_REQUESTS;
 }
-
+async function nationalIdVelocityCheck(clientId: string, env: Env): Promise<boolean> {
+  const key = `id_attempts:${clientId}`;
+  const attempts = (await supabaseGet(key, env) as number ?? 0) + 1;
+  await supabaseSet(key, attempts, 60 * 30, env); // 30 min window
+  return attempts <= 5; // max 5 different IDs per IP per 30 min
+}
 async function cacheGet(key: string, env: Env): Promise<any> {
   return await supabaseGet(key, env);
 }
@@ -326,73 +360,77 @@ export default {
     }
 
     if (path === '/api/register' && request.method === 'POST') {
-      try {
-        const body = (await request.json()) as Record<string, any>;
-        const { turnstileToken, ...formFields } = body;
-        logEvent('registration_request', { clientId, path });
+  // 1. Origin/UA/Content-Type check
+  const allowedOrigin = env.WORKER_ALLOWED_ORIGIN || DEFAULT_ORIGIN;
+  if (!isLegitimateRequest(request, allowedOrigin)) {
+    logEvent('blocked_suspicious_request', { clientId, path });
+    return jsonResponse({ error: 'Forbidden' }, 403, 'no-store', origin);
+  }
 
-        const valid = await verifyTurnstile(turnstileToken || '', clientIp, env);
-        if (!valid) {
-          return jsonResponse({ error: 'Verification failed. Please try again.' }, 403, 'no-store', origin);
-        }
+  try {
+    const body = (await request.json()) as Record<string, any>;
+    const { turnstileToken, ...formFields } = body;
 
-        const applicant = normalizeApplicantPayload(formFields);
-        const validationError = validateApplicantPayload(applicant);
-        if (validationError) {
-          return jsonResponse({ error: validationError }, 400, 'no-store', origin);
-        }
-
-      const exists = await applicantExists(
-        applicant.national_id,
-        env
-      );
-
-      if (exists) {
-        throw new Error('DUPLICATE_NATIONAL_ID');
-      }
-
-      const result = await saveApplicantToD1(
-        applicant,
-        env
-      );       
-      const id = result.meta.last_row_id;
-
-        if (id) {
-          await cacheSet(`submission:${id}`, applicant, SUBMISSION_CACHE_TTL, env);
-        }
-
-        return jsonResponse({
-          success: true,
-          message: 'Data saved successfully.',
-          id,
-        }, 200, 'no-store', origin);
-      } catch (error: any) {
-        logEvent('registration_error', { clientId, path, error: String(error) });
-        const message = String(error?.message || error);
-
-if (message === 'DUPLICATE_NATIONAL_ID') {
-  return jsonResponse(
-    {
-      error: 'هذا الرقم القومي مسجل بالفعل'
-    },
-    409,
-    'no-store',
-    origin
-  );
-}
-
-if (message.includes('UNIQUE constraint failed')) {
-  return jsonResponse(
-    {
-      error: 'هذا الرقم القومي مسجل بالفعل'
-    },
-    409,
-    'no-store',
-    origin
-  );
-}
-      }
+    // 2. Honeypot
+    if (formFields.website) {
+      logEvent('honeypot_triggered', { clientId });
+      return jsonResponse({ success: true, message: 'Data saved successfully.', id: 0 }, 200, 'no-store', origin);
     }
+
+    logEvent('registration_request', { clientId, path });
+
+    // 3. Turnstile
+    const valid = await verifyTurnstile(turnstileToken || '', clientIp, env);
+    if (!valid) {
+      return jsonResponse({ error: 'Verification failed. Please try again.' }, 403, 'no-store', origin);
+    }
+
+    const applicant = normalizeApplicantPayload(formFields);
+    const validationError = validateApplicantPayload(applicant);
+    if (validationError) {
+      return jsonResponse({ error: validationError }, 400, 'no-store', origin);
+    }
+
+    // 4. National ID velocity check
+    const idVelocityOk = await nationalIdVelocityCheck(clientId, env);
+    if (!idVelocityOk) {
+      logEvent('id_velocity_exceeded', { clientId });
+      return jsonResponse({ error: 'Too many attempts. Please try again later.' }, 429, 'no-store', origin);
+    }
+
+    // 5. Duplicate check
+    const exists = await applicantExists(applicant.national_id, env);
+    if (exists) {
+      throw new Error('DUPLICATE_NATIONAL_ID');
+    }
+
+    const result = await saveApplicantToD1(applicant, env);
+    const id = result.meta.last_row_id;
+
+    if (id) {
+      await cacheSet(`submission:${id}`, applicant, SUBMISSION_CACHE_TTL, env);
+    }
+
+    return jsonResponse({
+      success: true,
+      message: 'Data saved successfully.',
+      id,
+    }, 200, 'no-store', origin);
+
+  } catch (error: any) {
+    logEvent('registration_error', { clientId, path, error: String(error) });
+    const message = String(error?.message || error);
+
+    if (message === 'DUPLICATE_NATIONAL_ID') {
+      return jsonResponse({ error: 'هذا الرقم القومي مسجل بالفعل' }, 409, 'no-store', origin);
+    }
+    if (message.includes('UNIQUE constraint failed')) {
+      return jsonResponse({ error: 'هذا الرقم القومي مسجل بالفعل' }, 409, 'no-store', origin);
+    }
+
+    return jsonResponse({ error: 'حدث خطأ أثناء معالجة طلبك.' }, 500, 'no-store', origin);
+  }
+}
 
     if (path.startsWith('/api/submission/') && request.method === 'GET') {
       const id = path.split('/').pop() || '';

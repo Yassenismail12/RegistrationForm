@@ -27,6 +27,7 @@ const EMPTY_FORM = {
   how_know_about_us: '',
   volunteer_experience: "",
   egyptian: true,
+  website: '',
 };
 
 function toEnglishNumbers(str) {
@@ -316,6 +317,17 @@ if (
                   <input name="full_name" value={formData.full_name} onChange={handleChange} placeholder="الاسم العربي رباعي" />
                   {errors.full_name && <span className="error">{errors.full_name}</span>}
                 </div>
+                {/* Honeypot - hidden from real users */}
+{/* Honeypot — invisible to humans, bots fill it */}
+<input
+  name="website"
+  value={formData.website || ''}
+  onChange={handleChange}
+  tabIndex={-1}
+  autoComplete="off"
+  aria-hidden="true"
+  style={{ position: 'absolute', left: '-9999px', opacity: 0, pointerEvents: 'none' }}
+/>
 
                 <div className="field-group">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
