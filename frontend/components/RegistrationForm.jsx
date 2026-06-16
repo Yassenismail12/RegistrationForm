@@ -23,7 +23,9 @@ const EMPTY_FORM = {
   university: '',
   faculty: '',
   study_year: '',
+  has_volunteer_experience: false,
   how_know_about_us: '',
+  volunteer_experience: "",
   egyptian: true,
 };
 
@@ -178,7 +180,20 @@ export default function RegistrationForm() {
       newErrors.email = 'صيغة الايميل غير صحيحة';
     }
     if (!formData.how_know_about_us) newErrors.how_know_about_us = 'هذا الحقل مطلوب';
-
+if (
+  formData.has_volunteer_experience !== true &&
+  formData.has_volunteer_experience !== false
+) {
+  newErrors.has_volunteer_experience =
+    'هذا الحقل مطلوب';
+}
+    if (
+  formData.has_volunteer_experience &&
+  !formData.volunteer_experience.trim()
+) {
+  newErrors.volunteer_experience =
+    'يرجى شرح خبرتك التطوعية';
+}
     setErrors(newErrors);
     const firstErrorKey = Object.keys(newErrors)[0];
     if (firstErrorKey) {
@@ -385,11 +400,79 @@ export default function RegistrationForm() {
               </div>
             </div>
           </div>
-
+                            
           <div className="step-content">
             <h3 className="step-title">المصدر</h3>
             <div className="fields-grid" style={{ flexDirection: 'column' }}>
               <div className="column" style={{ width: '100%' }}>
+              <div className="field-group">
+  <label>٩- هل تطوعت في حاجة قبل كده؟</label>
+
+  <select
+    name="has_volunteer_experience"
+    value={formData.has_volunteer_experience ? 'yes' : 'no'}
+    onChange={(e) => {
+      const value = e.target.value === 'yes';
+
+      setFormData(prev => ({
+        ...prev,
+        has_volunteer_experience: value,
+        volunteer_experience: value
+          ? prev.volunteer_experience
+          : '',
+      }));
+
+      if (errors.has_volunteer_experience) {
+        setErrors(prev => ({
+          ...prev,
+          has_volunteer_experience: '',
+        }));
+      }
+    }}
+  >
+    <option value="">اختر</option>
+    <option value="yes">نعم</option>
+    <option value="no">لا</option>
+  </select>
+
+  {errors.has_volunteer_experience && (
+    <span className="error">
+      {errors.has_volunteer_experience}
+    </span>
+  )}
+</div>
+
+{formData.has_volunteer_experience && (
+  <div className="field-group">
+    <label>ما الذي تطوعت فيه؟</label>
+
+    <textarea
+      name="volunteer_experience"
+      value={formData.volunteer_experience}
+      onChange={handleChange}
+      placeholder="اشرح الخبرة التطوعية السابقة"
+      style={{
+        border: 'none',
+        borderBottom: '2px solid #e0b842',
+        background: 'transparent',
+        padding: '6px 4px',
+        fontFamily: "'Beiruti', sans-serif",
+        fontSize: '13px',
+        color: '#555',
+        textAlign: 'right',
+        outline: 'none',
+        minHeight: '80px',
+        resize: 'vertical'
+      }}
+    />
+
+    {errors.volunteer_experience && (
+      <span className="error">
+        {errors.volunteer_experience}
+      </span>
+    )}
+  </div>
+)}
                 <div className="field-group">
                   <label>٩- عرفت عننا منين؟</label>
                   <select name="how_know_about_us" value={formData.how_know_about_us} onChange={handleChange}>
