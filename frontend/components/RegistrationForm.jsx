@@ -27,7 +27,7 @@ export default function RegistrationForm() {
     howKnowAboutUs: DEFAULT_HOW_YOU_KNOW_US,
   });
   const [formData, setFormData] = useState({
-    fullNameAr: '', nationalId: '', isNonEgyptian: false, whatsapp: '', email: '',
+    fullNameAr: '', age: '', nationalId: '', isNonEgyptian: false, whatsapp: '', email: '',
     governorate: '', university: '', faculty: '', studyYear: '',
     volunteeredBefore: '', volunteerDetails: '', howKnowAboutUs: '',
   });
@@ -136,7 +136,7 @@ const handleChange = (e) => {
     return;
   }
   // Fields that should only contain numbers — auto-convert Arabic digits
-  const numericFields = ['whatsapp', 'nationalId'];
+  const numericFields = ['whatsapp', 'nationalId', 'age'];
   const converted = numericFields.includes(name) ? toEnglishNumbers(value) : value;
 
   setFormData(prev => ({ ...prev, [name]: converted }));
@@ -154,6 +154,11 @@ const validateForm = () => {
     newErrors.fullNameAr = 'يجب إدخال الاسم رباعياً على الأقل';
   } else if (!/^[\u0600-\u06FF\s]+$/.test(formData.fullNameAr.trim())) {
     newErrors.fullNameAr = 'الاسم يجب أن يكون بالعربية فقط';
+  }
+
+  // Age — required, reasonable youth-program range
+  if (!formData.age) {
+    newErrors.age = 'السن مطلوب';
   }
 
   // National ID — 14 digits, starts with 2 or 3
@@ -174,8 +179,8 @@ if (formData.isNonEgyptian) {
     newErrors.whatsapp = 'رقم الواتساب مطلوب';
   }
 
-  // Email
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+  // Email — optional, but must be valid format if provided
+  if (formData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
     newErrors.email = 'صيغة الايميل غير صحيحة';
   }
 
@@ -298,9 +303,14 @@ if (firstErrorKey) {
                   <input name="fullNameAr" value={formData.fullNameAr} onChange={handleChange} placeholder="الاسم العربي رباعي" />
                   {errors.fullNameAr && <span className="error">{errors.fullNameAr}</span>}
                 </div>
+                <div className="field-group">
+                  <label>٣ـ السن</label>
+                  <input name="age" value={formData.age} onChange={handleChange} placeholder="السن" maxLength={2} />
+                  {errors.age && <span className="error">{errors.age}</span>}
+                </div>
 <div className="field-group">
   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-    <label style={{ margin: 0 }}>٣ـ {formData.isNonEgyptian ? 'رقم الباسبور' : 'الرقم القومي'}</label>
+    <label style={{ margin: 0 }}>٥ـ {formData.isNonEgyptian ? 'رقم الباسبور' : 'الرقم القومي'}</label>
 
     <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 'normal', fontSize: '12px', color: '#1034A8' }}>
       <span id="not-egyptian">غير مصري؟</span>
@@ -353,7 +363,7 @@ if (firstErrorKey) {
                   {errors.whatsapp && <span className="error">{errors.whatsapp}</span>}
                 </div>
                 <div className="field-group">
-                  <label>٤ـ الايميل</label>
+                  <label>٤ـ الايميل (اختياري)</label>
                   <input name="email" type="email" value={formData.email} onChange={handleChange} placeholder="الايميل" />
                   {errors.email && <span className="error">{errors.email}</span>}
                 </div>
@@ -366,7 +376,7 @@ if (firstErrorKey) {
             <div className="fields-grid">
               <div className="column">
                 <div className="field-group">
-                  <label>٥ـ المحافظة</label>
+                  <label>٦ـ المحافظة</label>
                   <select name="governorate" value={formData.governorate} onChange={handleChange}>
                     <option value="">اختر المحافظة</option>
                     {pageData.governorates.map(g => <option key={g} value={g}>{g}</option>)}
@@ -374,7 +384,7 @@ if (firstErrorKey) {
                   {errors.governorate && <span className="error">{errors.governorate}</span>}
                 </div>
                 <div className="field-group">
-                  <label>٧ـ الجامعة</label>
+                  <label>٨ـ الجامعة</label>
                   <input name="university" value={formData.university} onChange={handleChange} placeholder="الجامعة" />
                   {errors.university && <span className="error">{errors.university}</span>}
                 </div>
@@ -382,12 +392,12 @@ if (firstErrorKey) {
               <div className="divider" />
               <div className="column">
                 <div className="field-group">
-                  <label>٦ـ الكلية</label>
+                  <label>٧ـ الكلية</label>
                   <input name="faculty" value={formData.faculty} onChange={handleChange} placeholder="الكلية" />
                   {errors.faculty && <span className="error">{errors.faculty}</span>}
                 </div>
                 <div className="field-group">
-                  <label>٨ـ الفرقة</label>
+                  <label>٩ـ الفرقة</label>
                   <select name="studyYear" value={formData.studyYear} onChange={handleChange}>
                     <option value="">اختر الفرقة</option>
                     {pageData.studyYears.map(y => <option key={y} value={y}>{y}</option>)}
@@ -403,7 +413,7 @@ if (firstErrorKey) {
             <div className="fields-grid" style={{flexDirection: 'column'}}>
               <div className="column" style={{width: '100%'}}>
                 <div className="field-group">
-                  <label>٩ـ هل تطوعت في حاجة قبل كده؟</label>
+                  <label>١٠ـ هل تطوعت في حاجة قبل كده؟</label>
                   <select name="volunteeredBefore" value={formData.volunteeredBefore} onChange={handleChange}>
                     <option value="">اختر</option>
                     <option value="yes">نعم</option>
@@ -419,7 +429,7 @@ if (firstErrorKey) {
                   </div>
                 )}
                 <div className="field-group" style={{marginTop: '20px'}}>
-                  <label>١٠ـ عرفت عننا منين؟</label>
+                  <label>١١ـ عرفت عننا منين؟</label>
                   <select name="howKnowAboutUs" value={formData.howKnowAboutUs} onChange={handleChange}>
                     <option value="">اختر المصدر</option>
                     {pageData.howKnowAboutUs.map(option => <option key={option} value={option}>{option}</option>)}
