@@ -356,22 +356,9 @@ export default {
 
     if (path === '/api/register' && request.method === 'POST') {
 
-  // 1. Origin/UA/Content-Type check
-  const allowedOrigin = env.WORKER_ALLOWED_ORIGIN || DEFAULT_ORIGIN;
-  if (!isLegitimateRequest(request, allowedOrigin)) {
-    logEvent('blocked_suspicious_request', { clientId, path });
-    return jsonResponse({ error: 'Forbidden' }, 403, 'no-store', origin);
-  }
-
   try {
     const body = (await request.json()) as Record<string, any>;
     const { turnstileToken, ...formFields } = body;
-
-    // 2. Honeypot
-    if (formFields.website) {
-      logEvent('honeypot_triggered', { clientId });
-      return jsonResponse({ success: true, message: 'Data saved successfully.', id: 0 }, 200, 'no-store', origin);
-    }
 
     logEvent('registration_request', { clientId, path });
 
