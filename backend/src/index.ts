@@ -8,6 +8,7 @@ interface Env {
 
 type ApplicantPayload = {
   full_name: string;
+  age: number | null;
   national_id: string;
   whatsapp: string;
   email: string | null;
@@ -124,6 +125,7 @@ function normalizeApplicantPayload(body: Record<string, any>): ApplicantPayload 
     full_name: String(body.full_name ?? '').trim(),
     national_id: toEnglishNumbers(String(body.national_id ?? '').trim()),
     whatsapp: toEnglishNumbers(String(body.whatsapp ?? '').trim()),
+    age: body.age !== undefined && body.age !== '' ? Number(body.age) : null,
     email: optionalText(body.email),
     governorate: optionalText(body.governorate),
     university: optionalText(body.university),
@@ -145,6 +147,9 @@ function validateApplicantPayload(applicant: ApplicantPayload): string | null {
   if (applicant.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(applicant.email)) {
     return 'email is invalid';
   }
+  if (!applicant.age) {
+  return 'age is required';
+}
   return null;
 }
 
@@ -161,6 +166,7 @@ async function saveApplicantToD1(applicant: ApplicantPayload, env: Env) {
       study_year,
       how_know_about_us,
       egyptian,
+      age,
       source
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)

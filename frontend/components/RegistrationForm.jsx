@@ -19,6 +19,7 @@ const EMPTY_FORM = {
   national_id: '',
   whatsapp: '',
   email: '',
+  age: '',
   governorate: '',
   university: '',
   faculty: '',
@@ -40,7 +41,7 @@ function normalizeSavedForm(saved) {
   return {
     ...EMPTY_FORM,
     ...saved,
-    full_name: saved.full_name ?? saved.fullNameAr ?? '',
+    full_name: saved.full_name ?? saved.fullNameAr ?? '',age: saved.age ?? '',
     national_id: saved.national_id ?? saved.nationalId ?? '',
     study_year: saved.study_year ?? saved.studyYear ?? '',
     how_know_about_us: saved.how_know_about_us ?? saved.howKnowAboutUs ?? '',
@@ -174,7 +175,9 @@ export default function RegistrationForm() {
     } else if (!/^[\u0600-\u06FF\s]+$/.test(formData.full_name.trim())) {
       newErrors.full_name = 'الاسم يجب أن يكون بالعربية فقط';
     }
-
+if (!formData.age) {
+  newErrors.age = 'السن مطلوب';
+}
     if (!formData.national_id.trim()) {
       newErrors.national_id = formData.egyptian ? 'الرقم القومي مطلوب' : 'رقم الباسبور مطلوب';
     } else if (formData.egyptian && !/^[23][0-9]{13}$/.test(formData.national_id)) {
@@ -328,7 +331,17 @@ if (
   aria-hidden="true"
   style={{ position: 'absolute', left: '-9999px', opacity: 0, pointerEvents: 'none' }}
 />
-
+<label>٢ب- السن</label>
+  <input
+    name="age"
+    type="number"
+    min="15"
+    max="35"
+    value={formData.age}
+    onChange={handleChange}
+    placeholder="السن"
+  />
+  {errors.age && <span className="error">{errors.age}</span>}
                 <div className="field-group">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                     <label style={{ margin: 0 }}>٣- {formData.egyptian ? 'الرقم القومي' : 'رقم الباسبور'}</label>
