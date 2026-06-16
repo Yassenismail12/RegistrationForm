@@ -27,7 +27,7 @@ export default function RegistrationForm() {
     howKnowAboutUs: DEFAULT_HOW_YOU_KNOW_US,
   });
   const [formData, setFormData] = useState({
-    fullNameAr: '', nationalId: '', whatsapp: '', email: '',
+    fullNameAr: '', nationalId: '', isNonEgyptian: false, whatsapp: '', email: '',
     governorate: '', university: '', faculty: '', studyYear: '',
     volunteeredBefore: '', volunteerDetails: '', howKnowAboutUs: '',
   });
@@ -129,10 +129,14 @@ export default function RegistrationForm() {
   }, []);
 
 const handleChange = (e) => {
-  const { name, value } = e.target;
-
+  const { name, value, type, checked } = e.target;
+  if (type === 'checkbox') {
+    setFormData(prev => ({ ...prev, [name]: checked }));
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
+    return;
+  }
   // Fields that should only contain numbers — auto-convert Arabic digits
-  const numericFields = ['nationalId', 'whatsapp'];
+  const numericFields = ['whatsapp', ...(formData.isNonEgyptian ? [] : ['nationalId'])];
   const converted = numericFields.includes(name) ? toEnglishNumbers(value) : value;
 
   setFormData(prev => ({ ...prev, [name]: converted }));
@@ -153,11 +157,19 @@ const validateForm = () => {
   }
 
   // National ID — 14 digits, starts with 2 or 3
+if (formData.isNonEgyptian) {
+  if (!formData.nationalId.trim()) {
+    newErrors.nationalId = 'رقم الباسبور مطلوب';
+  } else if (!/^[A-Za-z0-9]{6,12}$/.test(formData.nationalId.trim())) {
+    newErrors.nationalId = 'صيغة رقم الباسبور غير صحيحة';
+  }
+} else {
   if (!formData.nationalId) {
     newErrors.nationalId = 'الرقم القومي مطلوب';
   } else if (!/^[23][0-9]{13}$/.test(formData.nationalId)) {
     newErrors.nationalId = 'الرقم القومي يجب أن يكون 14 رقمًا ويبدأ بـ 2 أو 3';
   }
+}
 
   // WhatsApp — Egyptian number: 01x with 11 digits
   if (!formData.whatsapp) {
@@ -288,11 +300,52 @@ if (firstErrorKey) {
                   <input name="fullNameAr" value={formData.fullNameAr} onChange={handleChange} placeholder="الاسم العربي رباعي" />
                   {errors.fullNameAr && <span className="error">{errors.fullNameAr}</span>}
                 </div>
-                <div className="field-group">
-                  <label>٣ـ الرقم القومي</label>
-                  <input name="nationalId" value={formData.nationalId} onChange={handleChange} placeholder="مكوّن من 14 رقم" maxLength={14} />
-                  {errors.nationalId && <span className="error">{errors.nationalId}</span>}
-                </div>
+<div className="field-group">
+  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+    <label style={{ margin: 0 }}>٣ـ {formData.isNonEgyptian ? 'رقم الباسبور' : 'الرقم القومي'}</label>
+
+    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 'normal', fontSize: '12px', color: '#1034A8' }}>
+      <span id="not-egyptian">غير مصري؟</span>
+      <span style={{ position: 'relative', display: 'inline-block', width: '36px', height: '20px' }}>
+        <input
+          type="checkbox"
+          name="isNonEgyptian"
+          checked={formData.isNonEgyptian}
+          onChange={handleChange}
+          style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }}
+        />
+        <span style={{
+          position: 'absolute',
+          inset: 0,
+          background: formData.isNonEgyptian ? '#1034A8' : '#797979',
+          borderRadius: '999px',
+          transition: 'background 0.2s ease',
+        }}>
+          <span style={{
+            position: 'absolute',
+            top: '2px',
+            [formData.isNonEgyptian ? 'left' : 'right']: '2px',
+            width: '16px',
+            height: '16px',
+            background: '#fff',
+            borderRadius: '50%',
+            transition: 'left 0.2s ease, right 0.2s ease',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.25)',
+          }} />
+        </span>
+      </span>
+    </label>
+  </div>
+
+  <input
+    name="nationalId"
+    value={formData.nationalId}
+    onChange={handleChange}
+    placeholder={formData.isNonEgyptian ? 'رقم الباسبور' : 'مكوّن من 14 رقم'}
+    maxLength={formData.isNonEgyptian ? 12 : 14}
+  />
+  {errors.nationalId && <span className="error">{errors.nationalId}</span>}
+</div>
               </div>
               <div className="divider" />
               <div className="column">

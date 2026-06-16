@@ -356,6 +356,10 @@ body {
   line-height: 1.6;
   font-family: "Beiruti", sans-serif;
 }
+#not-egyptian {
+  font-size: 14px;
+  color: #000000;
+}
 @media (max-width: 600px) {
   .form-container {
     padding: 20px 20px;
