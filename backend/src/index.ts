@@ -1,35 +1,49 @@
-
 interface Env {
   WORKER_ALLOWED_ORIGIN?: string;
-  FIREBASE_API_KEY: string;
-  FIREBASE_PROJECT_ID: string;
+  DB: D1Database;
   TURNSTILE_SECRET: string;
   SUPABASE_URL: string;
   SUPABASE_SERVICE_KEY: string;
 }
 
+type ApplicantPayload = {
+  full_name: string;
+  national_id: string;
+  whatsapp: string;
+  email: string | null;
+  governorate: string | null;
+  university: string | null;
+  faculty: string | null;
+  study_year: string | null;
+  how_know_about_us: string | null;
+  egyptian: boolean;
+  source: string;
+};
+
 const DEFAULT_ORIGIN = 'https://registration-form.pages.dev';
 const RATE_LIMIT_WINDOW_SECONDS = 60;
 const RATE_LIMIT_REQUESTS = 30;
-const SUBMISSION_CACHE_TTL = 60 * 15; // 15 minutes
-const PAGE_DATA_CACHE_TTL = 60 * 60 * 6; // 6 hours
-const IMAGE_CACHE_TTL = 60 * 60 * 24; // 24 hours
+const SUBMISSION_CACHE_TTL = 60 * 15;
+const PAGE_DATA_CACHE_TTL = 60 * 60 * 6;
+const IMAGE_CACHE_TTL = 60 * 60 * 24;
+
+const PAGE_DATA = {
+  governorates: [
+    'القاهرة', 'الجيزة', 'الإسكندرية', 'الدقهلية', 'البحيرة',
+    'الفيوم', 'الغربية', 'الإسماعيلية', 'المنوفية', 'المنيا',
+    'القليوبية', 'الوادي الجديد', 'السويس', 'أسوان', 'أسيوط',
+    'بني سويف', 'بورسعيد', 'دمياط', 'الشرقية', 'جنوب سيناء',
+    'كفر الشيخ', 'مطروح', 'الأقصر', 'قنا', 'شمال سيناء', 'سوهاج', 'البحر الأحمر',
+  ],
+  studyYears: ['الأولى', 'الثانية', 'الثالثة', 'الرابعة', 'الخامسة', 'السادسة', 'خريج'],
+  howKnowAboutUs: ['الأصدقاء', 'فيسبوك', 'إنستجرام', 'تيكتوك', 'تويتر', 'لينكد ان', 'الشيرنج', 'اخرى'],
+};
+
 function toEnglishNumbers(str: string): string {
   return str
     .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
     .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06F0));
 }
-const PAGE_DATA = {
-  governorates: [
-    'القاهرة','الجيزة','الإسكندرية','الدقهلية','البحيرة',
-    'الفيوم','الغربية','الإسماعيلية','المنوفية','المنيا',
-    'القليوبية','الوادي الجديد','السويس','أسوان','أسيوط',
-    'بني سويف','بورسعيد','دمياط','الشرقية','جنوب سيناء',
-    'كفر الشيخ','مطروح','الأقصر','قنا','شمال سيناء','سوهاج','البحر الأحمر',
-  ],
-  studyYears: ['الأولى','الثانية','الثالثة','الرابعة','الخامسة','السادسة','خريج'],
-  howKnowAboutUs: ['الأصدقاء', 'فيسبوك', 'إنستجرام', 'تيكتوك', 'تويتر', 'لينكد ان', 'الاشرينج', 'اخرى'],
-};
 
 function buildCorsHeaders(origin: string) {
   return {
@@ -71,66 +85,75 @@ function logEvent(event: string, details: Record<string, unknown>) {
   console.log(JSON.stringify({ event, timestamp: new Date().toISOString(), ...details }));
 }
 
-function firestoreFieldsFromObject(payload: Record<string, any>) {
-  const fields: Record<string, { stringValue: string }> = {};
-  for (const [key, value] of Object.entries(payload)) {
-    fields[key] = { stringValue: String(value ?? '') };
-  }
-  return fields;
+function optionalText(value: unknown): string | null {
+  const text = String(value ?? '').trim();
+  return text ? text : null;
 }
 
-function parseFirestoreDocument(doc: any) {
-  if (!doc?.fields) return null;
-  const result: Record<string, string> = {};
-  for (const [key, value] of Object.entries(doc.fields)) {
-    if (typeof value === 'object' && 'stringValue' in (value as any)) {
-      result[key] = (value as any).stringValue;
-    }
-  }
-  return result;
-}
-
-async function saveToFirestore(body: Record<string, any>, env: Env) {
-  const { turnstileToken, ...formFields } = body;
-
-  // Normalize numeric fields
-  formFields.nationalId = toEnglishNumbers(String(formFields.nationalId ?? ''));
-  formFields.whatsapp   = toEnglishNumbers(String(formFields.whatsapp   ?? ''));
-
-  const url = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/applicants?key=${env.FIREBASE_API_KEY}`;
-  const payload = {
-    fields: firestoreFieldsFromObject({
-      ...formFields,          // ✅ formFields not body — no turnstileToken, normalized numbers
-      submittedAt: new Date().toISOString(),
-      source: 'Cloudflare-Worker',
-    }),
+function normalizeApplicantPayload(body: Record<string, any>): ApplicantPayload {
+  return {
+    full_name: String(body.full_name ?? '').trim(),
+    national_id: toEnglishNumbers(String(body.national_id ?? '').trim()),
+    whatsapp: toEnglishNumbers(String(body.whatsapp ?? '').trim()),
+    email: optionalText(body.email),
+    governorate: optionalText(body.governorate),
+    university: optionalText(body.university),
+    faculty: optionalText(body.faculty),
+    study_year: optionalText(body.study_year),
+    how_know_about_us: optionalText(body.how_know_about_us),
+    egyptian: body.egyptian !== false,
+    source: 'Cloudflare-Worker',
   };
-
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Firestore save failed: ${res.status} ${text}`);
-  }
-
-  return await res.json();
 }
 
-async function getSubmissionFromFirestore(id: string, env: Env) {
-  const url = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/applicants/${id}?key=${env.FIREBASE_API_KEY}`;
-  const res = await fetch(url);
-  if (!res.ok) {
-    return null;
+function validateApplicantPayload(applicant: ApplicantPayload): string | null {
+  if (!applicant.full_name) return 'full_name is required';
+  if (!applicant.national_id) return 'national_id is required';
+  if (!applicant.whatsapp) return 'whatsapp is required';
+  if (applicant.egyptian && !/^[23][0-9]{13}$/.test(applicant.national_id)) {
+    return 'national_id must be 14 digits and start with 2 or 3 for Egyptian applicants';
   }
-  const data = await res.json();
-  return parseFirestoreDocument(data);
+  if (applicant.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(applicant.email)) {
+    return 'email is invalid';
+  }
+  return null;
 }
 
-// ─── Supabase KV helpers ───────────────────────────────────────────────────────
+async function saveApplicantToD1(applicant: ApplicantPayload, env: Env) {
+  return await env.DB.prepare(`
+    INSERT INTO applicants (
+      full_name,
+      national_id,
+      whatsapp,
+      email,
+      governorate,
+      university,
+      faculty,
+      study_year,
+      how_know_about_us,
+      egyptian,
+      source
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `)
+    .bind(
+      applicant.full_name,
+      applicant.national_id,
+      applicant.whatsapp,
+      applicant.email,
+      applicant.governorate,
+      applicant.university,
+      applicant.faculty,
+      applicant.study_year,
+      applicant.how_know_about_us,
+      applicant.egyptian ? 1 : 0,
+      applicant.source
+    )
+    .run();
+}
+
+async function getSubmissionFromD1(id: string, env: Env) {
+  return await env.DB.prepare('SELECT * FROM applicants WHERE id = ?').bind(id).first();
+}
 
 async function supabaseGet(key: string, env: Env): Promise<any> {
   const res = await fetch(
@@ -140,9 +163,8 @@ async function supabaseGet(key: string, env: Env): Promise<any> {
   const rows: any[] = await res.json();
   if (!rows.length) return null;
   const row = rows[0];
-  // Check expiry
   if (row.expires_at && new Date(row.expires_at) < new Date()) {
-    await supabaseDelete(key, env); // clean up
+    await supabaseDelete(key, env);
     return null;
   }
   try { return JSON.parse(row.value); } catch { return row.value; }
@@ -156,7 +178,7 @@ async function supabaseSet(key: string, value: unknown, ttlSeconds: number | nul
     method: 'POST',
     headers: {
       ...supabaseHeaders(env),
-      'Prefer': 'resolution=merge-duplicates', // upsert
+      'Prefer': 'resolution=merge-duplicates',
     },
     body: JSON.stringify({ key, value: JSON.stringify(value), expires_at }),
   });
@@ -171,16 +193,16 @@ async function supabaseDelete(key: string, env: Env): Promise<void> {
 
 function supabaseHeaders(env: Env) {
   return {
-    'Content-Type'  : 'application/json',
-    'apikey'        : env.SUPABASE_SERVICE_KEY,
-    'Authorization' : `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+    'Content-Type': 'application/json',
+    apikey: env.SUPABASE_SERVICE_KEY,
+    Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}`,
   };
 }
 
 async function rateLimit(clientId: string, env: Env): Promise<boolean> {
-  const key     = `rate_limit:${clientId}`;
+  const key = `rate_limit:${clientId}`;
   const current = (await supabaseGet(key, env) as number) ?? 0;
-  const count   = current + 1;
+  const count = current + 1;
   await supabaseSet(key, count, RATE_LIMIT_WINDOW_SECONDS, env);
   return count <= RATE_LIMIT_REQUESTS;
 }
@@ -227,6 +249,7 @@ async function fetchAndCacheImage(url: string, env: Env) {
   await cacheSet(`img:${url}`, { data, contentType }, IMAGE_CACHE_TTL, env);
   return { data, contentType };
 }
+
 async function verifyTurnstile(token: string, ip: string, env: Env): Promise<boolean> {
   const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
     method: 'POST',
@@ -240,6 +263,7 @@ async function verifyTurnstile(token: string, ip: string, env: Env): Promise<boo
   const data: any = await res.json();
   return data.success === true;
 }
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const origin = request.headers.get('Origin') || env.WORKER_ALLOWED_ORIGIN || DEFAULT_ORIGIN;
@@ -285,48 +309,43 @@ export default {
       return jsonResponse(PAGE_DATA, 200, 'public, max-age=3600, stale-while-revalidate=3600', origin);
     }
 
-if (path === '/api/register' && request.method === 'POST') {
+    if (path === '/api/register' && request.method === 'POST') {
       try {
         const body = (await request.json()) as Record<string, any>;
-        logEvent('registration_request', { clientId, path, body });
-
         const { turnstileToken, ...formFields } = body;
+        logEvent('registration_request', { clientId, path });
+
         const valid = await verifyTurnstile(turnstileToken || '', clientIp, env);
         if (!valid) {
-          return jsonResponse({ error: 'فشل التحقق، حاول مرة أخرى' }, 403, 'no-store', origin);
+          return jsonResponse({ error: 'Verification failed. Please try again.' }, 403, 'no-store', origin);
         }
 
-       
-        if (!formFields.nationalId || String(formFields.nationalId).trim() === '') {
-          return jsonResponse({ error: 'الرقم القومي أو رقم الباسبور مطلوب' }, 400, 'no-store', origin);
+        const applicant = normalizeApplicantPayload(formFields);
+        const validationError = validateApplicantPayload(applicant);
+        if (validationError) {
+          return jsonResponse({ error: validationError }, 400, 'no-store', origin);
         }
 
-      
-        if (!formFields.isNonEgyptian && !/^[23][0-9]{13}$/.test(toEnglishNumbers(String(formFields.nationalId)))) {
-          return jsonResponse({ error: 'الرقم القومي يجب أن يكون 14 رقمًا ويبدأ بـ 2 أو 3' }, 400, 'no-store', origin);
-        }
+        const result = await saveApplicantToD1(applicant, env);
+        const id = result.meta.last_row_id;
 
-      
-       
-        const firestoreResult: any = await saveToFirestore(formFields, env);
-        const docId = firestoreResult?.name?.split('/').pop();
-
-        if (docId) {
-          await cacheSet(`submission:${docId}`, { ...formFields, submittedAt: new Date().toISOString() }, SUBMISSION_CACHE_TTL, env);
+        if (id) {
+          await cacheSet(`submission:${id}`, applicant, SUBMISSION_CACHE_TTL, env);
         }
 
         return jsonResponse({
           success: true,
-          message: 'Data saved to Firebase successfully!',
-          id: docId,
+          message: 'Data saved successfully.',
+          id,
         }, 200, 'no-store', origin);
-      } catch (error) {
+      } catch (error: any) {
         logEvent('registration_error', { clientId, path, error: String(error) });
-        return jsonResponse({ error: 'Failed to save data to Firebase', details: String(error) }, 400, 'no-store', origin);
+        if (String(error?.message || error).includes('UNIQUE constraint failed')) {
+          return jsonResponse({ error: 'national_id already exists' }, 409, 'no-store', origin);
+        }
+        return jsonResponse({ error: 'Failed to save data', details: String(error) }, 400, 'no-store', origin);
       }
     }
-
-    
 
     if (path.startsWith('/api/submission/') && request.method === 'GET') {
       const id = path.split('/').pop() || '';
@@ -337,10 +356,10 @@ if (path === '/api/register' && request.method === 'POST') {
       const cached = await cacheGet(`submission:${id}`, env);
       if (cached) {
         logEvent('submission_cached', { clientId, id });
-        return jsonResponse({ id, cached }, 200, 'public, max-age=60', origin);
+        return jsonResponse({ id, submission: cached }, 200, 'public, max-age=60', origin);
       }
 
-      const submission = await getSubmissionFromFirestore(id, env);
+      const submission = await getSubmissionFromD1(id, env);
       if (!submission) {
         return jsonResponse({ error: 'Not found' }, 404, 'no-store', origin);
       }

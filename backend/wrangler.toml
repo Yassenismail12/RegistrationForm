@@ -23,6 +23,11 @@ head_sampling_rate = 1
 [build]
 command = "npm install"
 
+[[d1_databases]]
+binding = "DB"
+database_name = "yly-registration-db"
+database_id = "aa702b2d-39dd-4e12-b9e3-250ffad1fcb0"
+
 [vars]
 # Backend environment
 WORKER_ALLOWED_ORIGIN = "https://registration-form.pages.dev"
