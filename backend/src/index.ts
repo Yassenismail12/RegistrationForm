@@ -22,7 +22,7 @@ type ApplicantPayload = {
 
 const DEFAULT_ORIGIN = 'https://registration-form.pages.dev';
 const RATE_LIMIT_WINDOW_SECONDS = 60;
-const RATE_LIMIT_REQUESTS = 30;
+const RATE_LIMIT_REQUESTS = 5;
 const SUBMISSION_CACHE_TTL = 60 * 15;
 const PAGE_DATA_CACHE_TTL = 60 * 60 * 6;
 const IMAGE_CACHE_TTL = 60 * 60 * 24;
@@ -44,7 +44,23 @@ function toEnglishNumbers(str: string): string {
     .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
     .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06F0));
 }
+async function applicantExists(
+  nationalId: string,
+  env: Env
+): Promise<boolean> {
 
+  const row = await env.DB
+    .prepare(`
+      SELECT id
+      FROM applicants
+      WHERE national_id = ?
+      LIMIT 1
+    `)
+    .bind(nationalId)
+    .first();
+
+  return !!row;
+}
 function buildCorsHeaders(origin: string) {
   return {
     'Access-Control-Allow-Origin': origin,
@@ -326,8 +342,20 @@ export default {
           return jsonResponse({ error: validationError }, 400, 'no-store', origin);
         }
 
-        const result = await saveApplicantToD1(applicant, env);
-        const id = result.meta.last_row_id;
+      const exists = await applicantExists(
+        applicant.national_id,
+        env
+      );
+
+      if (exists) {
+        throw new Error('DUPLICATE_NATIONAL_ID');
+      }
+
+      const result = await saveApplicantToD1(
+        applicant,
+        env
+      );       
+      const id = result.meta.last_row_id;
 
         if (id) {
           await cacheSet(`submission:${id}`, applicant, SUBMISSION_CACHE_TTL, env);
@@ -340,10 +368,29 @@ export default {
         }, 200, 'no-store', origin);
       } catch (error: any) {
         logEvent('registration_error', { clientId, path, error: String(error) });
-        if (String(error?.message || error).includes('UNIQUE constraint failed')) {
-          return jsonResponse({ error: 'national_id already exists' }, 409, 'no-store', origin);
-        }
-        return jsonResponse({ error: 'Failed to save data', details: String(error) }, 400, 'no-store', origin);
+        const message = String(error?.message || error);
+
+if (message === 'DUPLICATE_NATIONAL_ID') {
+  return jsonResponse(
+    {
+      error: 'هذا الرقم القومي مسجل بالفعل'
+    },
+    409,
+    'no-store',
+    origin
+  );
+}
+
+if (message.includes('UNIQUE constraint failed')) {
+  return jsonResponse(
+    {
+      error: 'هذا الرقم القومي مسجل بالفعل'
+    },
+    409,
+    'no-store',
+    origin
+  );
+}
       }
     }
 
