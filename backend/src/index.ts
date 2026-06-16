@@ -285,36 +285,48 @@ export default {
       return jsonResponse(PAGE_DATA, 200, 'public, max-age=3600, stale-while-revalidate=3600', origin);
     }
 
-    if (path === '/api/register' && request.method === 'POST') {
-  try {
-    const body = (await request.json()) as Record<string, any>;
-    logEvent('registration_request', { clientId, path, body });
+if (path === '/api/register' && request.method === 'POST') {
+      try {
+        const body = (await request.json()) as Record<string, any>;
+        logEvent('registration_request', { clientId, path, body });
 
-    // ✅ ADD THIS BLOCK — Turnstile verification
-    const { turnstileToken, ...formFields } = body;
-    const valid = await verifyTurnstile(turnstileToken || '', clientIp, env);
-    if (!valid) {
-      return jsonResponse({ error: 'فشل التحقق، حاول مرة أخرى' }, 403, 'no-store', origin);
+        const { turnstileToken, ...formFields } = body;
+        const valid = await verifyTurnstile(turnstileToken || '', clientIp, env);
+        if (!valid) {
+          return jsonResponse({ error: 'فشل التحقق، حاول مرة أخرى' }, 403, 'no-store', origin);
+        }
+
+       
+        if (!formFields.nationalId || String(formFields.nationalId).trim() === '') {
+          return jsonResponse({ error: 'الرقم القومي أو رقم الباسبور مطلوب' }, 400, 'no-store', origin);
+        }
+
+      
+        if (!formFields.isNonEgyptian && !/^[23][0-9]{13}$/.test(toEnglishNumbers(String(formFields.nationalId)))) {
+          return jsonResponse({ error: 'الرقم القومي يجب أن يكون 14 رقمًا ويبدأ بـ 2 أو 3' }, 400, 'no-store', origin);
+        }
+
+      
+       
+        const firestoreResult: any = await saveToFirestore(formFields, env);
+        const docId = firestoreResult?.name?.split('/').pop();
+
+        if (docId) {
+          await cacheSet(`submission:${docId}`, { ...formFields, submittedAt: new Date().toISOString() }, SUBMISSION_CACHE_TTL, env);
+        }
+
+        return jsonResponse({
+          success: true,
+          message: 'Data saved to Firebase successfully!',
+          id: docId,
+        }, 200, 'no-store', origin);
+      } catch (error) {
+        logEvent('registration_error', { clientId, path, error: String(error) });
+        return jsonResponse({ error: 'Failed to save data to Firebase', details: String(error) }, 400, 'no-store', origin);
+      }
     }
-    // ✅ END OF NEW BLOCK
 
-    const firestoreResult: any = await saveToFirestore(formFields, env); // ← changed body to formFields
-    const docId = firestoreResult?.name?.split('/').pop();
-
-    if (docId) {
-      await cacheSet(`submission:${docId}`, { ...formFields, submittedAt: new Date().toISOString() }, SUBMISSION_CACHE_TTL, env); // ← changed body to formFields
-    }
-
-    return jsonResponse({
-      success: true,
-      message: 'Data saved to Firebase successfully!',
-      id: docId,
-    }, 200, 'no-store', origin);
-  } catch (error) {
-    logEvent('registration_error', { clientId, path, error: String(error) });
-    return jsonResponse({ error: 'Failed to save data to Firebase', details: String(error) }, 400, 'no-store', origin);
-  }
-    }
+    
 
     if (path.startsWith('/api/submission/') && request.method === 'GET') {
       const id = path.split('/').pop() || '';
