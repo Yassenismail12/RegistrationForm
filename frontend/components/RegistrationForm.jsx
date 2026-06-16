@@ -41,6 +41,7 @@ export default function RegistrationForm() {
   const turnstileWidgetId = useRef(null);  
 
 
+  // Load saved form/page data from localStorage, then fetch fresh page data
   useEffect(() => {
     const savedFormData = typeof window !== 'undefined' ? window.localStorage.getItem(STORAGE_KEY_FORM) : null;
     const savedPageData = typeof window !== 'undefined' ? window.localStorage.getItem(STORAGE_KEY_PAGE_DATA) : null;
@@ -61,65 +62,7 @@ export default function RegistrationForm() {
       }
     }
 
-useEffect(() => {
-  if (step !== 5) {
-    // User left step 5 — remove widget and reset token
-    if (turnstileWidgetId.current !== null && typeof window.turnstile !== 'undefined') {
-      try { window.turnstile.remove(turnstileWidgetId.current); } catch {}
-      turnstileWidgetId.current = null;
-    }
-    setTurnstileToken('');
-    return;
-  }
-
-  const tryRender = () => {
-    if (!turnstileRef.current || typeof window.turnstile === 'undefined') return;
-
-    // Remove any existing widget first
-    if (turnstileWidgetId.current !== null) {
-      try { window.turnstile.remove(turnstileWidgetId.current); } catch {}
-      turnstileWidgetId.current = null;
-    }
-
-    turnstileWidgetId.current = window.turnstile.render(turnstileRef.current, {
-      sitekey: '0x4AAAAAADkzJ8tcT5glStf5',
-      theme: 'light',
-      language: 'ar',
-      'refresh-expired': 'auto',        // ← auto-refresh when token expires
-      'retry': 'auto',                  // ← auto-retry on network failure
-      'retry-interval': 3000,           // ← retry every 3s
-      callback: (token) => {
-        setTurnstileToken(token);
-        setTurnstileError(false);
-      },
-      'expired-callback': () => {
-        // Token expired (after 300s) — reset so user must re-verify
-        setTurnstileToken('');
-      },
-      'error-callback': () => {
-        // Network/challenge error — reset
-        setTurnstileToken('');
-      },
-    });
-  };
-
-  // Poll until window.turnstile is ready
-  let attempts = 0;
-  const interval = setInterval(() => {
-    attempts++;
-    if (typeof window.turnstile !== 'undefined') {
-      clearInterval(interval);
-      tryRender();
-    } else if (attempts > 50) {
-      clearInterval(interval);
-    }
-  }, 100);
-
-  return () => {
-    clearInterval(interval);
-  };
-}, [step]);
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8787';
+    const apiBase = process.env.NEXT_PUBLIC_API_URL;
     fetch(`${apiBase}/api/page-data`, { method: 'GET' })
       .then((res) => res.ok ? res.json() : null)
       .then((data) => {
@@ -129,26 +72,42 @@ useEffect(() => {
         }
       })
       .catch((err) => console.warn('Unable to load page metadata', err));
+  }, []);
 
+  // Render the Turnstile widget once on mount (single-page form, no steps)
+  useEffect(() => {
     const tryRender = () => {
-      if (!turnstileRef.current) return;
-      if (typeof window.turnstile === 'undefined') return;
+      if (!turnstileRef.current || typeof window.turnstile === 'undefined') return;
 
-      if (widgetId !== null) {
-        try { window.turnstile.remove(widgetId); } catch {}
+      // Remove any existing widget first (e.g. Fast Refresh / re-mount)
+      if (turnstileWidgetId.current !== null) {
+        try { window.turnstile.remove(turnstileWidgetId.current); } catch {}
+        turnstileWidgetId.current = null;
       }
 
-      widgetId = window.turnstile.render(turnstileRef.current, {
+      turnstileWidgetId.current = window.turnstile.render(turnstileRef.current, {
         sitekey: '0x4AAAAAADkzJ8tcT5glStf5',
         theme: 'light',
         language: 'ar',
+        'refresh-expired': 'auto',   // auto-refresh when token expires
+        'retry': 'auto',             // auto-retry on network failure
+        'retry-interval': 3000,      // retry every 3s
         callback: (token) => {
           setTurnstileToken(token);
           setTurnstileError(false);
         },
+        'expired-callback': () => {
+          // Token expired (after 300s) — reset so user must re-verify
+          setTurnstileToken('');
+        },
+        'error-callback': () => {
+          // Network/challenge error — reset
+          setTurnstileToken('');
+        },
       });
     };
 
+    // Poll until window.turnstile is ready (script loads async)
     let attempts = 0;
     const interval = setInterval(() => {
       attempts++;
@@ -156,14 +115,15 @@ useEffect(() => {
         clearInterval(interval);
         tryRender();
       } else if (attempts > 50) {
-        clearInterval(interval);
+        clearInterval(interval); // give up after 5s
       }
     }, 100);
 
     return () => {
       clearInterval(interval);
-      if (widgetId !== null && typeof window.turnstile !== 'undefined') {
-        try { window.turnstile.remove(widgetId); } catch {}
+      if (turnstileWidgetId.current !== null && typeof window.turnstile !== 'undefined') {
+        try { window.turnstile.remove(turnstileWidgetId.current); } catch {}
+        turnstileWidgetId.current = null;
       }
     };
   }, []);
@@ -199,7 +159,7 @@ const validateForm = () => {
     newErrors.nationalId = 'الرقم القومي يجب أن يكون 14 رقمًا ويبدأ بـ 2 أو 3';
   }
 
-  // WhatsApp — Egyptian number: 01x with 10 or 11 digits
+  // WhatsApp — Egyptian number: 01x with 11 digits
   if (!formData.whatsapp) {
     newErrors.whatsapp = 'رقم الواتساب مطلوب';
   }
