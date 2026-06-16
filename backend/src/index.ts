@@ -335,18 +335,7 @@ export default {
 
     const clientIp = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'anonymous';
     const clientId = `ip:${clientIp}`;
-    let allowed = true;
-
-    try {
-      allowed = await rateLimit(clientId, env);
-    } catch (error) {
-      logEvent('rate_limit_error', { clientId, error: String(error) });
-    }
-
-    if (!allowed) {
-      logEvent('rate_limit_exceeded', { clientId, path });
-      return jsonResponse({ error: 'Too many requests' }, 429, 'no-store', origin);
-    }
+    
 
     if (path === '/api/health' && request.method === 'GET') {
       logEvent('health_check', { clientId, path });
@@ -366,6 +355,18 @@ export default {
     }
 
     if (path === '/api/register' && request.method === 'POST') {
+      let allowed = true;
+
+    try {
+      allowed = await rateLimit(clientId, env);
+    } catch (error) {
+      logEvent('rate_limit_error', { clientId, error: String(error) });
+    }
+
+    if (!allowed) {
+      logEvent('rate_limit_exceeded', { clientId, path });
+      return jsonResponse({ error: 'Too many requests' }, 429, 'no-store', origin);
+    }
   // 1. Origin/UA/Content-Type check
   const allowedOrigin = env.WORKER_ALLOWED_ORIGIN || DEFAULT_ORIGIN;
   if (!isLegitimateRequest(request, allowedOrigin)) {
