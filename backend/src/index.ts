@@ -168,7 +168,7 @@ async function saveApplicantToD1(applicant: ApplicantPayload, env: Env) {
       egyptian,
       age,
       source
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
     .bind(
       applicant.full_name,
@@ -181,6 +181,7 @@ async function saveApplicantToD1(applicant: ApplicantPayload, env: Env) {
       applicant.study_year,
       applicant.how_know_about_us,
       applicant.egyptian ? 1 : 0,
+      applicant.age ?? null,
       applicant.source
     )
     .run();
