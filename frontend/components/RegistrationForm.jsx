@@ -331,20 +331,19 @@ if (
   aria-hidden="true"
   style={{ position: 'absolute', left: '-9999px', opacity: 0, pointerEvents: 'none' }}
 />
-<label>٢ب- السن</label>
+<div className="field-group">
+  <label>٣- السن</label>
   <input
     name="age"
-    type="number"
-    min="15"
-    max="35"
     value={formData.age}
     onChange={handleChange}
     placeholder="السن"
   />
   {errors.age && <span className="error">{errors.age}</span>}
+</div>
                 <div className="field-group">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                    <label style={{ margin: 0 }}>٣- {formData.egyptian ? 'الرقم القومي' : 'رقم الباسبور'}</label>
+                    <label style={{ margin: 0 }}>٥- {formData.egyptian ? 'الرقم القومي' : 'رقم الباسبور'}</label>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 'normal', fontSize: '12px', color: '#1034A8' }}>
                       <span id="not-egyptian">مصري؟</span>
                       <span style={{ position: 'relative', display: 'inline-block', width: '36px', height: '20px' }}>
@@ -410,7 +409,7 @@ if (
             <div className="fields-grid">
               <div className="column">
                 <div className="field-group">
-                  <label>٥- المحافظة</label>
+                  <label>٦- المحافظة</label>
                   <select name="governorate" value={formData.governorate} onChange={handleChange}>
                     <option value="">اختر المحافظة</option>
                     {pageData.governorates.map(g => <option key={g} value={g}>{g}</option>)}
@@ -418,7 +417,7 @@ if (
                   {errors.governorate && <span className="error">{errors.governorate}</span>}
                 </div>
                 <div className="field-group">
-                  <label>٧- الجامعة</label>
+                  <label>٨- الجامعة</label>
                   <input name="university" value={formData.university} onChange={handleChange} placeholder="الجامعة" />
                   {errors.university && <span className="error">{errors.university}</span>}
                 </div>
@@ -428,12 +427,12 @@ if (
 
               <div className="column">
                 <div className="field-group">
-                  <label>٦- الكلية</label>
+                  <label>٧- الكلية</label>
                   <input name="faculty" value={formData.faculty} onChange={handleChange} placeholder="الكلية" />
                   {errors.faculty && <span className="error">{errors.faculty}</span>}
                 </div>
                 <div className="field-group">
-                  <label>٨- الفرقة</label>
+                  <label>٩- الفرقة</label>
                   <select name="study_year" value={formData.study_year} onChange={handleChange}>
                     <option value="">اختر الفرقة</option>
                     {pageData.studyYears.map(y => <option key={y} value={y}>{y}</option>)}
@@ -449,7 +448,7 @@ if (
             <div className="fields-grid" style={{ flexDirection: 'column' }}>
               <div className="column" style={{ width: '100%' }}>
               <div className="field-group">
-  <label>٩- هل تطوعت في حاجة قبل كده؟</label>
+  <label>١٠- هل تطوعت في حاجة قبل كده؟</label>
 
   <select
     name="has_volunteer_experience"
@@ -517,7 +516,7 @@ if (
   </div>
 )}
                 <div className="field-group">
-                  <label>٩- عرفت عننا منين؟</label>
+                  <label>١١- عرفت عننا منين؟</label>
                   <select name="how_know_about_us" value={formData.how_know_about_us} onChange={handleChange}>
                     <option value="">اختر المصدر</option>
                     {pageData.howKnowAboutUs.map(option => <option key={option} value={option}>{option}</option>)}
