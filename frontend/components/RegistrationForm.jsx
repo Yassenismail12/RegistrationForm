@@ -64,6 +64,11 @@ export default function RegistrationForm() {
   const turnstileWidgetId = useRef(null);
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch((err) =>
+        console.warn('SW registration failed:', err)
+      );
+    }
     const savedFormData = typeof window !== 'undefined' ? window.localStorage.getItem(STORAGE_KEY_FORM) : null;
     const savedPageData = typeof window !== 'undefined' ? window.localStorage.getItem(STORAGE_KEY_PAGE_DATA) : null;
 
