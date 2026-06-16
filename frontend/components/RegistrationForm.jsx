@@ -225,7 +225,19 @@ if (
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => null);
-        throw new Error(errorData?.error || 'network');
+        const message = errorData?.error || 'network';
+
+        if (res.status === 409 || message === 'هذا الرقم القومي مسجل بالفعل') {
+          setErrors(prev => ({ ...prev, national_id: message }));
+          const el = document.querySelector('[name="national_id"]');
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.focus();
+          }
+          return; 
+        }
+
+        throw new Error(message);
       }
 
       const data = await res.json();
