@@ -208,6 +208,7 @@ if (
 
   const handleSubmit = async () => {
     if (!validateForm()) return;
+    if (Object.keys(errors).some(k => errors[k])) return;
     if (!turnstileToken) {
       setTurnstileError(true);
       return;
