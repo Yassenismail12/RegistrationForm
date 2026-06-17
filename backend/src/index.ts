@@ -269,8 +269,8 @@ async function rateLimit(clientId: string, env: Env): Promise<boolean> {
 async function nationalIdVelocityCheck(clientId: string, env: Env): Promise<boolean> {
   const key = `id_attempts:${clientId}`;
   const attempts = (await supabaseGet(key, env) as number ?? 0) + 1;
-  await supabaseSet(key, attempts, 60 * 30, env); // 30 min window
-  return attempts <= 5; // max 5 different IDs per IP per 30 min
+  await supabaseSet(key, attempts, 60 * 60, env); // 60 min window
+  return attempts <= 20; // max 20 attempts per IP per hour
 }
 async function cacheGet(key: string, env: Env): Promise<any> {
   return await supabaseGet(key, env);
