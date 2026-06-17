@@ -33,7 +33,7 @@ database_id = "aa702b2d-39dd-4e12-b9e3-250ffad1fcb0"
 # Then paste the returned id below.
 [[kv_namespaces]]
 binding = "KV"
-id = "YOUR_KV_NAMESPACE_ID"          # <-- replace after running wrangler kv namespace create
+id = "2e183d1f280141e3b5d7f5ab1627c9e7"         
 
 # For local development with wrangler dev, also set preview_id:
 # preview_id = "YOUR_KV_PREVIEW_NAMESPACE_ID"
