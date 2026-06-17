@@ -217,24 +217,44 @@ if (formData.has_volunteer_experience === null) {
 
   const handleSubmit = async () => {
     if (!validateForm()) return;
-    if (Object.keys(errors).some(k => errors[k])) return;
     if (!turnstileToken) {
       setTurnstileError(true);
       return;
     }
 
-    setSubmitting(true);
-    setSubmitError('');
-    try {
+setSubmitting(true);
+setSubmitError('');
+
+const controller = new AbortController();
+
+const timeout = setTimeout(() => {
+  controller.abort();
+}, 15000);
+
+try {
       const apiBase = process.env.NEXT_PUBLIC_API_URL;
       const res = await fetch(`${apiBase}/api/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, turnstileToken }),
-      });
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    ...formData,
+    turnstileToken,
+  }),
+  signal: controller.signal,
+});
+
+clearTimeout(timeout);
 
       if (!res.ok) {
-        const errorData = await res.json().catch(() => null);
+        let data = null;
+
+try {
+  data = await res.json();
+} catch {
+  data = {};
+}
         const message = errorData?.error || 'network';
 
         if (res.status === 409 || message === 'هذا الرقم القومي مسجل بالفعل') {
@@ -258,9 +278,18 @@ if (formData.has_volunteer_experience === null) {
         window.localStorage.removeItem(STORAGE_KEY_FORM);
       }
     } catch (err) {
-      console.error(err);
-      setSubmitError('حدث خطأ أثناء إرسال البيانات. يرجى المحاولة مرة أخرى.');
-    } finally {
+  console.error(err);
+
+  if (err.name === 'AbortError') {
+    setSubmitError(
+      'انتهت مهلة الاتصال بالخادم. برجاء المحاولة مرة أخرى.'
+    );
+  } else {
+    setSubmitError(
+      'حدث خطأ أثناء إرسال البيانات. يرجى المحاولة مرة أخرى.'
+    );
+  }
+} finally {
       setSubmitting(false);
     }
   };

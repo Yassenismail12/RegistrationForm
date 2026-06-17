@@ -24,8 +24,6 @@ type ApplicantPayload = {
 };
 
 const DEFAULT_ORIGIN = 'https://registration-form.pages.dev';
-const RATE_LIMIT_WINDOW_SECONDS = 60 * 10;
-const RATE_LIMIT_REQUESTS = 3;
 const SUBMISSION_CACHE_TTL = 60 * 15;
 const PAGE_DATA_CACHE_TTL = 60 * 60 * 6;
 const IMAGE_CACHE_TTL = 60 * 60 * 24;
@@ -46,23 +44,6 @@ function toEnglishNumbers(str: string): string {
   return str
     .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
     .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06F0));
-}
-async function applicantExists(
-  nationalId: string,
-  env: Env
-): Promise<boolean> {
-
-  const row = await env.DB
-    .prepare(`
-      SELECT id
-      FROM applicants
-      WHERE national_id = ?
-      LIMIT 1
-    `)
-    .bind(nationalId)
-    .first();
-
-  return !!row;
 }
 
 function isLegitimateRequest(request: Request, allowedOrigin: string): boolean {
@@ -244,28 +225,6 @@ function supabaseHeaders(env: Env) {
 }
 
 // REPLACE this entire function
-async function rateLimit(clientId: string, env: Env): Promise<boolean> {
-  const key = `rate_limit:${clientId}`;
-  const globalKey = `rate_limit:global`;
-
-  const [current, globalCount] = await Promise.all([
-    supabaseGet(key, env) as Promise<number | null>,
-    supabaseGet(globalKey, env) as Promise<number | null>,
-  ]);
-
-  const count = (current ?? 0) + 1;
-  const gCount = (globalCount ?? 0) + 1;
-
-  // Block if global submissions exceed 100/min (detect waves)
-  if (gCount > 100) return false;
-
-  await Promise.all([
-    supabaseSet(key, count, RATE_LIMIT_WINDOW_SECONDS, env),
-    supabaseSet(globalKey, gCount, 60, env), // global resets every 60s
-  ]);
-
-  return count <= RATE_LIMIT_REQUESTS;
-}
 async function nationalIdVelocityCheck(clientId: string, env: Env): Promise<boolean> {
   const key = `id_attempts:${clientId}`;
   const attempts = (await supabaseGet(key, env) as number ?? 0) + 1;
@@ -392,10 +351,6 @@ export default {
     }
 
     // 5. Duplicate check
-    const exists = await applicantExists(applicant.national_id, env);
-    if (exists) {
-      throw new Error('DUPLICATE_NATIONAL_ID');
-    }
 
     const result = await saveApplicantToD1(applicant, env);
     const id = result.meta.last_row_id;
@@ -414,9 +369,6 @@ export default {
     logEvent('registration_error', { clientId, path, error: String(error) });
     const message = String(error?.message || error);
 
-    if (message === 'DUPLICATE_NATIONAL_ID') {
-      return jsonResponse({ error: 'هذا الرقم القومي مسجل بالفعل' }, 409, 'no-store', origin);
-    }
     if (message.includes('UNIQUE constraint failed')) {
       return jsonResponse({ error: 'هذا الرقم القومي مسجل بالفعل' }, 409, 'no-store', origin);
     }
