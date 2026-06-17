@@ -225,11 +225,12 @@ function supabaseHeaders(env: Env) {
 }
 
 // REPLACE this entire function
+// Only block if truly spamming — don't penalize successful submitters
 async function nationalIdVelocityCheck(clientId: string, env: Env): Promise<boolean> {
   const key = `id_attempts:${clientId}`;
   const attempts = (await supabaseGet(key, env) as number ?? 0) + 1;
-  await supabaseSet(key, attempts, 60 * 60, env); // 60 min window
-  return attempts <= 20; // max 20 attempts per IP per hour
+  await supabaseSet(key, attempts, 60 * 60, env);
+  return attempts <= 20;
 }
 async function cacheGet(key: string, env: Env): Promise<any> {
   return await supabaseGet(key, env);

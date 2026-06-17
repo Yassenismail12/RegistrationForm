@@ -248,14 +248,9 @@ try {
 clearTimeout(timeout);
 
       if (!res.ok) {
-        let data = null;
-
-try {
-  data = await res.json();
-} catch {
-  data = {};
-}
-        const message = errorData?.error || 'network';
+let data = null;
+try { data = await res.json(); } catch { data = {}; }
+const message = data?.error || 'network';  // ✅
 
         if (res.status === 409 || message === 'هذا الرقم القومي مسجل بالفعل') {
           setErrors(prev => ({ ...prev, national_id: message }));
