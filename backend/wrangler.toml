@@ -39,6 +39,7 @@ id = "2e183d1f280141e3b5d7f5ab1627c9e7"
 # preview_id = "YOUR_KV_PREVIEW_NAMESPACE_ID"
 
 [vars]
-WORKER_ALLOWED_ORIGIN = "https://registration-form.pages.dev"
+WORKER_ALLOWED_ORIGIN = "https://registration.ylyunion.com"
+
 # TURNSTILE_SECRET must be set as a secret, not a plain var:
 #   npx wrangler secret put TURNSTILE_SECRET
