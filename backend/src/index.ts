@@ -1,9 +1,8 @@
 interface Env {
   WORKER_ALLOWED_ORIGIN?: string;
   DB: D1Database;
+  KV: KVNamespace;
   TURNSTILE_SECRET: string;
-  SUPABASE_URL: string;
-  SUPABASE_SERVICE_KEY: string;
 }
 
 type ApplicantPayload = {
@@ -36,28 +35,34 @@ const PAGE_DATA = {
     'بني سويف', 'بورسعيد', 'دمياط', 'الشرقية', 'جنوب سيناء',
     'كفر الشيخ', 'مطروح', 'الأقصر', 'قنا', 'شمال سيناء', 'سوهاج', 'البحر الأحمر',
   ],
-  studyYears: ['الأولى', 'الثانية', 'الثالثة', 'الرابعة', 'الخامسة', 'السادسة', 'خريج','ثانوية عامة'],
+  studyYears: ['الأولى', 'الثانية', 'الثالثة', 'الرابعة', 'الخامسة', 'السادسة', 'خريج', 'ثانوية عامة'],
   howKnowAboutUs: ['الأصدقاء', 'فيسبوك', 'إنستجرام', 'تيكتوك', 'تويتر', 'لينكد ان', 'الشيرنج', 'اخرى'],
 };
+
+// ─── KV helpers (replaces all Supabase KV calls) ────────────────────────────
+
+async function kvGet<T = unknown>(key: string, env: Env): Promise<T | null> {
+  const value = await env.KV.get(key, 'json');
+  return value as T | null;
+}
+
+async function kvSet(key: string, value: unknown, ttlSeconds: number | null, env: Env): Promise<void> {
+  const opts = ttlSeconds ? { expirationTtl: ttlSeconds } : undefined;
+  await env.KV.put(key, JSON.stringify(value), opts);
+}
+
+async function kvDelete(key: string, env: Env): Promise<void> {
+  await env.KV.delete(key);
+}
+
+// ─── Utility ─────────────────────────────────────────────────────────────────
 
 function toEnglishNumbers(str: string): string {
   return str
     .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
-    .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06F0));
+    .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0));
 }
 
-function isLegitimateRequest(request: Request, allowedOrigin: string): boolean {
-  const origin = request.headers.get('Origin');
-  const referer = request.headers.get('Referer');
-  const contentType = request.headers.get('Content-Type') || '';
-  const userAgent = request.headers.get('User-Agent') || '';
-
-  const originOk = origin === allowedOrigin || referer?.startsWith(allowedOrigin);
-  const contentTypeOk = contentType.includes('application/json');
-  const uaOk = userAgent.includes('Mozilla');
-
-  return !!(originOk && contentTypeOk && uaOk);
-}
 function buildCorsHeaders(origin: string) {
   return {
     'Access-Control-Allow-Origin': origin,
@@ -115,7 +120,8 @@ function normalizeApplicantPayload(body: Record<string, any>): ApplicantPayload 
     faculty: optionalText(body.faculty),
     study_year: optionalText(body.study_year),
     how_know_about_us: optionalText(body.how_know_about_us),
-    has_volunteer_experience: typeof body.has_volunteer_experience === 'boolean' ? body.has_volunteer_experience : null,
+    has_volunteer_experience:
+      typeof body.has_volunteer_experience === 'boolean' ? body.has_volunteer_experience : null,
     volunteer_experience: optionalText(body.volunteer_experience),
     egyptian: body.egyptian !== false,
     source: 'Cloudflare-Worker',
@@ -132,29 +138,18 @@ function validateApplicantPayload(applicant: ApplicantPayload): string | null {
   if (applicant.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(applicant.email)) {
     return 'email is invalid';
   }
-  if (!applicant.age) {
-  return 'age is required';
-}
+  if (!applicant.age) return 'age is required';
   return null;
 }
+
+// ─── D1 helpers ──────────────────────────────────────────────────────────────
 
 async function saveApplicantToD1(applicant: ApplicantPayload, env: Env) {
   return await env.DB.prepare(`
     INSERT INTO applicants (
-      full_name,
-      national_id,
-      whatsapp,
-      email,
-      governorate,
-      university,
-      faculty,
-      study_year,
-      how_know_about_us,
-      egyptian,
-      age,
-      has_volunteer_experience,
-      volunteer_experience,
-      source
+      full_name, national_id, whatsapp, email, governorate,
+      university, faculty, study_year, how_know_about_us,
+      egyptian, age, has_volunteer_experience, volunteer_experience, source
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
     .bind(
@@ -169,9 +164,13 @@ async function saveApplicantToD1(applicant: ApplicantPayload, env: Env) {
       applicant.how_know_about_us,
       applicant.egyptian ? 1 : 0,
       applicant.age ?? null,
-      applicant.has_volunteer_experience === null ? null : applicant.has_volunteer_experience ? 1 : 0,
+      applicant.has_volunteer_experience === null
+        ? null
+        : applicant.has_volunteer_experience
+        ? 1
+        : 0,
       applicant.volunteer_experience,
-      applicant.source
+      applicant.source,
     )
     .run();
 }
@@ -180,65 +179,16 @@ async function getSubmissionFromD1(id: string, env: Env) {
   return await env.DB.prepare('SELECT * FROM applicants WHERE id = ?').bind(id).first();
 }
 
-async function supabaseGet(key: string, env: Env): Promise<any> {
-  const res = await fetch(
-    `${env.SUPABASE_URL}/rest/v1/kv_store?key=eq.${encodeURIComponent(key)}&select=value,expires_at&limit=1`,
-    { headers: supabaseHeaders(env) }
-  );
-  const rows: any[] = await res.json();
-  if (!rows.length) return null;
-  const row = rows[0];
-  if (row.expires_at && new Date(row.expires_at) < new Date()) {
-    await supabaseDelete(key, env);
-    return null;
-  }
-  try { return JSON.parse(row.value); } catch { return row.value; }
-}
+// ─── Rate-limiting ────────────────────────────────────────────────────────────
 
-async function supabaseSet(key: string, value: unknown, ttlSeconds: number | null, env: Env): Promise<void> {
-  const expires_at = ttlSeconds
-    ? new Date(Date.now() + ttlSeconds * 1000).toISOString()
-    : null;
-  await fetch(`${env.SUPABASE_URL}/rest/v1/kv_store`, {
-    method: 'POST',
-    headers: {
-      ...supabaseHeaders(env),
-      'Prefer': 'resolution=merge-duplicates',
-    },
-    body: JSON.stringify({ key, value: JSON.stringify(value), expires_at }),
-  });
-}
-
-async function supabaseDelete(key: string, env: Env): Promise<void> {
-  await fetch(
-    `${env.SUPABASE_URL}/rest/v1/kv_store?key=eq.${encodeURIComponent(key)}`,
-    { method: 'DELETE', headers: supabaseHeaders(env) }
-  );
-}
-
-function supabaseHeaders(env: Env) {
-  return {
-    'Content-Type': 'application/json',
-    apikey: env.SUPABASE_SERVICE_KEY,
-    Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}`,
-  };
-}
-
-// REPLACE this entire function
-// Only block if truly spamming — don't penalize successful submitters
 async function nationalIdVelocityCheck(clientId: string, env: Env): Promise<boolean> {
   const key = `id_attempts:${clientId}`;
-  const attempts = (await supabaseGet(key, env) as number ?? 0) + 1;
-  await supabaseSet(key, attempts, 60 * 60, env);
+  const attempts = ((await kvGet<number>(key, env)) ?? 0) + 1;
+  await kvSet(key, attempts, 60 * 60, env);
   return attempts <= 20;
 }
-async function cacheGet(key: string, env: Env): Promise<any> {
-  return await supabaseGet(key, env);
-}
 
-async function cacheSet(key: string, value: unknown, ttl: number, env: Env): Promise<void> {
-  await supabaseSet(key, value, ttl, env);
-}
+// ─── Image caching ────────────────────────────────────────────────────────────
 
 function encodeBase64(bytes: Uint8Array) {
   let binary = '';
@@ -252,42 +202,37 @@ function encodeBase64(bytes: Uint8Array) {
 function decodeBase64(base64: string) {
   const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   return bytes;
 }
 
 async function getCachedImage(url: string, env: Env) {
-  const cached = await cacheGet(`img:${url}`, env);
-  return cached as { data: string; contentType: string } | null;
+  return kvGet<{ data: string; contentType: string }>(`img:${url}`, env);
 }
 
 async function fetchAndCacheImage(url: string, env: Env) {
   const imageRes = await fetch(url);
-  if (!imageRes.ok) {
-    throw new Error(`Image fetch failed ${imageRes.status}`);
-  }
+  if (!imageRes.ok) throw new Error(`Image fetch failed ${imageRes.status}`);
   const contentType = imageRes.headers.get('Content-Type') || 'application/octet-stream';
   const buffer = new Uint8Array(await imageRes.arrayBuffer());
   const data = encodeBase64(buffer);
-  await cacheSet(`img:${url}`, { data, contentType }, IMAGE_CACHE_TTL, env);
+  await kvSet(`img:${url}`, { data, contentType }, IMAGE_CACHE_TTL, env);
   return { data, contentType };
 }
+
+// ─── Turnstile ────────────────────────────────────────────────────────────────
 
 async function verifyTurnstile(token: string, ip: string, env: Env): Promise<boolean> {
   const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      secret: env.TURNSTILE_SECRET,
-      response: token,
-      remoteip: ip,
-    }),
+    body: JSON.stringify({ secret: env.TURNSTILE_SECRET, response: token, remoteip: ip }),
   });
   const data: any = await res.json();
   return data.success === true;
 }
+
+// ─── Main fetch handler ───────────────────────────────────────────────────────
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -296,124 +241,157 @@ export default {
     const path = url.pathname;
 
     if (request.method === 'OPTIONS') {
-      return new Response(null, {
-        status: 204,
-        headers: buildCorsHeaders(origin),
-      });
+      return new Response(null, { status: 204, headers: buildCorsHeaders(origin) });
     }
 
-    const clientIp = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'anonymous';
+    const clientIp =
+      request.headers.get('cf-connecting-ip') ||
+      request.headers.get('x-forwarded-for') ||
+      'anonymous';
     const clientId = `ip:${clientIp}`;
-    
 
+    // ── GET /api/health ──────────────────────────────────────────────────────
     if (path === '/api/health' && request.method === 'GET') {
       logEvent('health_check', { clientId, path });
-      return jsonResponse({ status: 'ok', ts: Date.now() }, 200, 'public, max-age=10, stale-while-revalidate=30', origin);
+      return jsonResponse(
+        { status: 'ok', ts: Date.now() },
+        200,
+        'public, max-age=10, stale-while-revalidate=30',
+        origin,
+      );
     }
 
+    // ── GET /api/page-data ───────────────────────────────────────────────────
     if (path === '/api/page-data' && request.method === 'GET') {
-      const cachedPageData = await cacheGet('page-data', env);
+      const cachedPageData = await kvGet('page-data', env);
       if (cachedPageData) {
         logEvent('page_data_cached', { clientId, path });
-        return jsonResponse(cachedPageData, 200, 'public, max-age=3600, stale-while-revalidate=3600', origin);
+        return jsonResponse(
+          cachedPageData,
+          200,
+          'public, max-age=3600, stale-while-revalidate=3600',
+          origin,
+        );
       }
-
-      await cacheSet('page-data', PAGE_DATA, PAGE_DATA_CACHE_TTL, env);
+      await kvSet('page-data', PAGE_DATA, PAGE_DATA_CACHE_TTL, env);
       logEvent('page_data_served', { clientId, path, fromCache: false });
-      return jsonResponse(PAGE_DATA, 200, 'public, max-age=3600, stale-while-revalidate=3600', origin);
+      return jsonResponse(
+        PAGE_DATA,
+        200,
+        'public, max-age=3600, stale-while-revalidate=3600',
+        origin,
+      );
     }
 
+    // ── POST /api/register ───────────────────────────────────────────────────
     if (path === '/api/register' && request.method === 'POST') {
+      try {
+        const body = (await request.json()) as Record<string, any>;
+        const { turnstileToken, ...formFields } = body;
 
-  try {
-    const body = (await request.json()) as Record<string, any>;
-    const { turnstileToken, ...formFields } = body;
+        logEvent('registration_request', { clientId, path });
 
-    logEvent('registration_request', { clientId, path });
+        const valid = await verifyTurnstile(turnstileToken || '', clientIp, env);
+        if (!valid) {
+          return jsonResponse(
+            { error: 'Verification failed. Please try again.' },
+            403,
+            'no-store',
+            origin,
+          );
+        }
 
+        const applicant = normalizeApplicantPayload(formFields);
+        const validationError = validateApplicantPayload(applicant);
+        if (validationError) {
+          return jsonResponse({ error: validationError }, 400, 'no-store', origin);
+        }
 
-    // 3. Turnstile
-    const valid = await verifyTurnstile(turnstileToken || '', clientIp, env);
-    if (!valid) {
-      return jsonResponse({ error: 'Verification failed. Please try again.' }, 403, 'no-store', origin);
+        const idVelocityOk = await nationalIdVelocityCheck(clientId, env);
+        if (!idVelocityOk) {
+          logEvent('id_velocity_exceeded', { clientId });
+          return jsonResponse(
+            { error: 'Too many attempts. Please try again later.' },
+            429,
+            'no-store',
+            origin,
+          );
+        }
+
+        const result = await saveApplicantToD1(applicant, env);
+        const id = result.meta.last_row_id;
+
+        if (id) {
+          await kvSet(`submission:${id}`, applicant, SUBMISSION_CACHE_TTL, env);
+        }
+
+        return jsonResponse(
+          { success: true, message: 'Data saved successfully.', id },
+          200,
+          'no-store',
+          origin,
+        );
+      } catch (error: any) {
+        logEvent('registration_error', { clientId, path, error: String(error) });
+        const message = String(error?.message || error);
+
+        if (message.includes('UNIQUE constraint failed')) {
+          return jsonResponse({ error: 'هذا الرقم القومي مسجل بالفعل' }, 409, 'no-store', origin);
+        }
+
+        return jsonResponse({ error: 'حدث خطأ أثناء معالجة طلبك.' }, 500, 'no-store', origin);
+      }
     }
 
-    const applicant = normalizeApplicantPayload(formFields);
-    const validationError = validateApplicantPayload(applicant);
-    if (validationError) {
-      return jsonResponse({ error: validationError }, 400, 'no-store', origin);
-    }
-
-    // 4. National ID velocity check
-    const idVelocityOk = await nationalIdVelocityCheck(clientId, env);
-    if (!idVelocityOk) {
-      logEvent('id_velocity_exceeded', { clientId });
-      return jsonResponse({ error: 'Too many attempts. Please try again later.' }, 429, 'no-store', origin);
-    }
-
-    // 5. Duplicate check
-
-    const result = await saveApplicantToD1(applicant, env);
-    const id = result.meta.last_row_id;
-
-    if (id) {
-      await cacheSet(`submission:${id}`, applicant, SUBMISSION_CACHE_TTL, env);
-    }
-
-    return jsonResponse({
-      success: true,
-      message: 'Data saved successfully.',
-      id,
-    }, 200, 'no-store', origin);
-
-  } catch (error: any) {
-    logEvent('registration_error', { clientId, path, error: String(error) });
-    const message = String(error?.message || error);
-
-    if (message.includes('UNIQUE constraint failed')) {
-      return jsonResponse({ error: 'هذا الرقم القومي مسجل بالفعل' }, 409, 'no-store', origin);
-    }
-
-    return jsonResponse({ error: 'حدث خطأ أثناء معالجة طلبك.' }, 500, 'no-store', origin);
-  }
-}
-
+    // ── GET /api/submission/:id ──────────────────────────────────────────────
     if (path.startsWith('/api/submission/') && request.method === 'GET') {
       const id = path.split('/').pop() || '';
-      if (!id) {
-        return jsonResponse({ error: 'Submission id required' }, 400, 'no-store', origin);
-      }
+      if (!id) return jsonResponse({ error: 'Submission id required' }, 400, 'no-store', origin);
 
-      const cached = await cacheGet(`submission:${id}`, env);
+      const cached = await kvGet(`submission:${id}`, env);
       if (cached) {
         logEvent('submission_cached', { clientId, id });
         return jsonResponse({ id, submission: cached }, 200, 'public, max-age=60', origin);
       }
 
       const submission = await getSubmissionFromD1(id, env);
-      if (!submission) {
-        return jsonResponse({ error: 'Not found' }, 404, 'no-store', origin);
-      }
+      if (!submission) return jsonResponse({ error: 'Not found' }, 404, 'no-store', origin);
 
-      await cacheSet(`submission:${id}`, submission, SUBMISSION_CACHE_TTL, env);
+      await kvSet(`submission:${id}`, submission, SUBMISSION_CACHE_TTL, env);
       return jsonResponse({ id, submission }, 200, 'public, max-age=60', origin);
     }
 
+    // ── GET /api/optimize-image ──────────────────────────────────────────────
     if (path === '/api/optimize-image' && request.method === 'GET') {
       const targetUrl = url.searchParams.get('url');
       if (!targetUrl || !/^https:/.test(targetUrl)) {
-        return jsonResponse({ error: 'A secure https image URL is required.' }, 400, 'no-store', origin);
+        return jsonResponse(
+          { error: 'A secure https image URL is required.' },
+          400,
+          'no-store',
+          origin,
+        );
       }
 
       try {
         const cached = await getCachedImage(targetUrl, env);
-        const imageRecord = cached || await fetchAndCacheImage(targetUrl, env);
+        const imageRecord = cached || (await fetchAndCacheImage(targetUrl, env));
         const bytes = decodeBase64(imageRecord.data);
         logEvent('image_served', { clientId, targetUrl, fromCache: Boolean(cached) });
-        return imageResponse(bytes.buffer, imageRecord.contentType, 'public, max-age=86400, stale-while-revalidate=3600', origin);
+        return imageResponse(
+          bytes.buffer,
+          imageRecord.contentType,
+          'public, max-age=86400, stale-while-revalidate=3600',
+          origin,
+        );
       } catch (error) {
         logEvent('image_error', { clientId, targetUrl, error: String(error) });
-        return jsonResponse({ error: 'Unable to optimize image', details: String(error) }, 500, 'no-store', origin);
+        return jsonResponse(
+          { error: 'Unable to optimize image', details: String(error) },
+          500,
+          'no-store',
+          origin,
+        );
       }
     }
 

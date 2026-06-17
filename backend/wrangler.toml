@@ -3,8 +3,6 @@ name = "registrationform"
 main = "src/index.ts"
 compatibility_date = "2026-06-11"
 
-
-
 [observability]
 enabled = false
 head_sampling_rate = 1
@@ -23,13 +21,24 @@ head_sampling_rate = 1
 [build]
 command = "npm install"
 
+# ── Cloudflare D1 (persistent storage) ───────────────────────────────────────
 [[d1_databases]]
 binding = "DB"
 database_name = "yly-registration-db"
 database_id = "aa702b2d-39dd-4e12-b9e3-250ffad1fcb0"
 
+# ── Cloudflare Workers KV (cache & rate-limiting) ─────────────────────────────
+# Create the namespace once with:
+#   npx wrangler kv namespace create REGISTRATION_KV
+# Then paste the returned id below.
+[[kv_namespaces]]
+binding = "KV"
+id = "YOUR_KV_NAMESPACE_ID"          # <-- replace after running wrangler kv namespace create
+
+# For local development with wrangler dev, also set preview_id:
+# preview_id = "YOUR_KV_PREVIEW_NAMESPACE_ID"
+
 [vars]
-# Backend environment
 WORKER_ALLOWED_ORIGIN = "https://registration-form.pages.dev"
-TURNSTILE_SECRET = "0x4AAAAAADkzJ3SyemTP9xIG58t23IJIV38"
-SUPABASE_URL  = "https://ztjdwsrhmtwlynomnovu.supabase.co"
+# TURNSTILE_SECRET must be set as a secret, not a plain var:
+#   npx wrangler secret put TURNSTILE_SECRET
