@@ -122,7 +122,7 @@ export default function RegistrationForm() {
       }
 
       turnstileWidgetId.current = window.turnstile.render(turnstileRef.current, {
-        sitekey: '0x4AAAAAADkzJ8tcT5glStf5',
+        sitekey: '0x4AAAAAADmvj_jJpoBXAe62',
         theme: 'light',
         language: 'ar',
         'refresh-expired': 'auto',
