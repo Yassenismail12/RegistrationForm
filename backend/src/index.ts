@@ -371,12 +371,6 @@ export default {
 
     logEvent('registration_request', { clientId, path });
 
-    // 1. Rate limit check
-    const allowed = await rateLimit(clientId, env);
-    if (!allowed) {
-      logEvent('rate_limit_exceeded', { clientId });
-      return jsonResponse({ error: 'Too many requests. Please try again later.' }, 429, 'no-store', origin);
-    }
 
     // 3. Turnstile
     const valid = await verifyTurnstile(turnstileToken || '', clientIp, env);
