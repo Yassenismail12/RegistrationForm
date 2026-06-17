@@ -1,13 +1,15 @@
 export class RegisterDto {
-  fullNameAr: string;
-  nationalId: string;
+  full_name: string;
+  national_id: string;
   whatsapp: string;
   email: string;
+  age: number | null;
   governorate: string;
   university: string;
   faculty: string;
-  studyYear: string;
-  volunteeredBefore: string;
-  volunteerDetails: string;
-  howKnowAboutUs: string;
+  study_year: string;
+  has_volunteer_experience: boolean | null;
+  volunteer_experience: string;
+  how_know_about_us: string;
+  egyptian: boolean;
 }

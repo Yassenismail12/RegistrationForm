@@ -24,7 +24,7 @@ const EMPTY_FORM = {
   university: '',
   faculty: '',
   study_year: '',
-  has_volunteer_experience: false,
+  has_volunteer_experience: null,
   how_know_about_us: '',
   volunteer_experience: "",
   egyptian: true,
@@ -38,14 +38,22 @@ function toEnglishNumbers(str) {
 }
 
 function normalizeSavedForm(saved) {
+  const hasExp = saved.has_volunteer_experience !== undefined
+    ? saved.has_volunteer_experience
+    : saved.volunteeredBefore !== undefined
+      ? saved.volunteeredBefore
+      : null;
+
   return {
     ...EMPTY_FORM,
     ...saved,
-    full_name: saved.full_name ?? saved.fullNameAr ?? '',age: saved.age ?? '',
+    full_name: saved.full_name ?? saved.fullNameAr ?? '',
+    age: saved.age ?? '',
     national_id: saved.national_id ?? saved.nationalId ?? '',
     study_year: saved.study_year ?? saved.studyYear ?? '',
     how_know_about_us: saved.how_know_about_us ?? saved.howKnowAboutUs ?? '',
     egyptian: typeof saved.egyptian === 'boolean' ? saved.egyptian : !saved.isNonEgyptian,
+    has_volunteer_experience: typeof hasExp === 'boolean' ? hasExp : null,
   };
 }
 
@@ -185,12 +193,8 @@ if (!formData.age) {
       newErrors.email = 'صيغة الايميل غير صحيحة';
     }
     if (!formData.how_know_about_us) newErrors.how_know_about_us = 'هذا الحقل مطلوب';
-if (
-  formData.has_volunteer_experience !== true &&
-  formData.has_volunteer_experience !== false
-) {
-  newErrors.has_volunteer_experience =
-    'هذا الحقل مطلوب';
+if (formData.has_volunteer_experience === null) {
+  newErrors.has_volunteer_experience = 'هذا الحقل مطلوب';
 }
     if (
   formData.has_volunteer_experience &&
@@ -240,6 +244,7 @@ if (
             el.scrollIntoView({ behavior: 'smooth', block: 'center' });
             el.focus();
           }
+          setSubmitting(false);
           return; 
         }
 
@@ -438,9 +443,10 @@ if (
 
   <select
     name="has_volunteer_experience"
-    value={formData.has_volunteer_experience ? 'yes' : 'no'}
+    value={formData.has_volunteer_experience === null ? '' : formData.has_volunteer_experience ? 'yes' : 'no'}
     onChange={(e) => {
-      const value = e.target.value === 'yes';
+      const raw = e.target.value;
+      const value = raw === '' ? null : raw === 'yes';
 
       setFormData(prev => ({
         ...prev,

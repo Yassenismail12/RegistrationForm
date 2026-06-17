@@ -17,6 +17,8 @@ type ApplicantPayload = {
   faculty: string | null;
   study_year: string | null;
   how_know_about_us: string | null;
+  has_volunteer_experience: boolean | null;
+  volunteer_experience: string | null;
   egyptian: boolean;
   source: string;
 };
@@ -63,7 +65,18 @@ async function applicantExists(
   return !!row;
 }
 
+function isLegitimateRequest(request: Request, allowedOrigin: string): boolean {
+  const origin = request.headers.get('Origin');
+  const referer = request.headers.get('Referer');
+  const contentType = request.headers.get('Content-Type') || '';
+  const userAgent = request.headers.get('User-Agent') || '';
 
+  const originOk = origin === allowedOrigin || referer?.startsWith(allowedOrigin);
+  const contentTypeOk = contentType.includes('application/json');
+  const uaOk = userAgent.includes('Mozilla');
+
+  return !!(originOk && contentTypeOk && uaOk);
+}
 function buildCorsHeaders(origin: string) {
   return {
     'Access-Control-Allow-Origin': origin,
@@ -121,6 +134,8 @@ function normalizeApplicantPayload(body: Record<string, any>): ApplicantPayload 
     faculty: optionalText(body.faculty),
     study_year: optionalText(body.study_year),
     how_know_about_us: optionalText(body.how_know_about_us),
+    has_volunteer_experience: typeof body.has_volunteer_experience === 'boolean' ? body.has_volunteer_experience : null,
+    volunteer_experience: optionalText(body.volunteer_experience),
     egyptian: body.egyptian !== false,
     source: 'Cloudflare-Worker',
   };
@@ -156,8 +171,10 @@ async function saveApplicantToD1(applicant: ApplicantPayload, env: Env) {
       how_know_about_us,
       egyptian,
       age,
+      has_volunteer_experience,
+      volunteer_experience,
       source
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
     .bind(
       applicant.full_name,
@@ -171,6 +188,8 @@ async function saveApplicantToD1(applicant: ApplicantPayload, env: Env) {
       applicant.how_know_about_us,
       applicant.egyptian ? 1 : 0,
       applicant.age ?? null,
+      applicant.has_volunteer_experience === null ? null : applicant.has_volunteer_experience ? 1 : 0,
+      applicant.volunteer_experience,
       applicant.source
     )
     .run();
@@ -351,6 +370,13 @@ export default {
     const { turnstileToken, ...formFields } = body;
 
     logEvent('registration_request', { clientId, path });
+
+    // 1. Rate limit check
+    const allowed = await rateLimit(clientId, env);
+    if (!allowed) {
+      logEvent('rate_limit_exceeded', { clientId });
+      return jsonResponse({ error: 'Too many requests. Please try again later.' }, 429, 'no-store', origin);
+    }
 
     // 3. Turnstile
     const valid = await verifyTurnstile(turnstileToken || '', clientIp, env);
