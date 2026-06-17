@@ -31,7 +31,5 @@ database_id = "aa702b2d-39dd-4e12-b9e3-250ffad1fcb0"
 [vars]
 # Backend environment
 WORKER_ALLOWED_ORIGIN = "https://registration-form.pages.dev"
-FIREBASE_API_KEY = "AIzaSyAmmtTkhrui4JKfYM1Pb2ez1qv6XZTaxWw"
-FIREBASE_PROJECT_ID = "yly-registration"
 TURNSTILE_SECRET = "0x4AAAAAADkzJ3SyemTP9xIG58t23IJIV38"
 SUPABASE_URL  = "https://ztjdwsrhmtwlynomnovu.supabase.co"

@@ -63,18 +63,7 @@ async function applicantExists(
   return !!row;
 }
 
-function isLegitimateRequest(request: Request, allowedOrigin: string): boolean {
-  const origin = request.headers.get('Origin');
-  const referer = request.headers.get('Referer');
-  const contentType = request.headers.get('Content-Type') || '';
-  const userAgent = request.headers.get('User-Agent') || '';
 
-  const originOk = origin === allowedOrigin || referer?.startsWith(allowedOrigin);
-  const contentTypeOk = contentType.includes('application/json');
-  const uaOk = userAgent.includes('Mozilla');
-
-  return !!(originOk && contentTypeOk && uaOk);
-}
 function buildCorsHeaders(origin: string) {
   return {
     'Access-Control-Allow-Origin': origin,
