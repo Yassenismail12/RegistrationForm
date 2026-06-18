@@ -254,15 +254,19 @@ try { data = await res.json(); } catch { data = {}; }
 const message = data?.error || 'network';  // ✅
 
         if (res.status === 409 || message === 'هذا الرقم القومي مسجل بالفعل') {
-          setErrors(prev => ({ ...prev, national_id: message }));
-          const el = document.querySelector('[name="national_id"]');
-          if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            el.focus();
-          }
-          setSubmitting(false);
-          return; 
-        }
+  setErrors(prev => ({ ...prev, national_id: message }));
+  const el = document.querySelector('[name="national_id"]');
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.focus();
+  }
+  if (turnstileWidgetId.current !== null && window.turnstile) {
+    window.turnstile.reset(turnstileWidgetId.current);
+  }
+  setTurnstileToken('');
+  setSubmitting(false);
+  return; 
+}
 
         throw new Error(message);
       }
@@ -275,6 +279,11 @@ const message = data?.error || 'network';  // ✅
       }
     } catch (err) {
   console.error(err);
+
+  if (turnstileWidgetId.current !== null && window.turnstile) {
+    window.turnstile.reset(turnstileWidgetId.current);
+  }
+  setTurnstileToken('');
 
   if (err.name === 'AbortError') {
     setSubmitError(
