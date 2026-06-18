@@ -159,11 +159,15 @@ export default function RegistrationForm() {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    const numericFields = ['whatsapp', 'national_id'];
-    const nextValue = type === 'checkbox'
+    const numericFields = ['whatsapp', 'national_id','age'];
+    let nextValue = type === 'checkbox'
       ? checked
       : numericFields.includes(name) ? toEnglishNumbers(value) : value;
 
+// Fields that should contain numbers only 
+  if (['age', 'national_id', 'whatsapp'].includes(name)) {
+     nextValue = toEnglishNumbers(value).replace(/\D/g, ''); 
+    }
     setFormData(prev => ({ ...prev, [name]: nextValue }));
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
@@ -179,8 +183,12 @@ export default function RegistrationForm() {
     } else if (!/^[\u0600-\u06FF\s]+$/.test(formData.full_name.trim())) {
       newErrors.full_name = 'الاسم يجب أن يكون بالعربية فقط';
     }
-if (!formData.age) {
+if (!formData.age.trim()) {
   newErrors.age = 'السن مطلوب';
+} else if (!/^[0-9]+$/.test(formData.age.trim())) {
+  newErrors.age = 'السن يجب أن يكون أرقامًا فقط';
+} else if (Number(formData.age) < 10 || Number(formData.age) > 100) {
+  newErrors.age = 'يرجى إدخال سن صحيح';
 }
     if (!formData.national_id.trim()) {
       newErrors.national_id = formData.egyptian ? 'الرقم القومي مطلوب' : 'رقم الباسبور مطلوب';
@@ -358,12 +366,24 @@ const message = data?.error || 'network';  // ✅
                 
 <div className="field-group">
   <label>٣- السن</label>
-  <input
-    name="age"
-    value={formData.age}
-    onChange={handleChange}
-    placeholder="السن"
-  />
+<input
+  type="number"
+  name="age"
+  value={formData.age}
+  onChange={handleChange}
+  placeholder="السن"
+  min="10"
+  max="100"
+  step="1"
+  inputMode="numeric"
+  onKeyDown={(e) => {
+    if (
+      ['e', 'E', '+', '-', '.'].includes(e.key)
+    ) {
+      e.preventDefault();
+    }
+  }}
+/>
   {errors.age && <span className="error">{errors.age}</span>}
 </div>
                 <div className="field-group">
@@ -417,7 +437,7 @@ const message = data?.error || 'network';  // ✅
               <div className="column">
                 <div className="field-group">
                   <label>٢- رقم الواتساب</label>
-                  <input name="whatsapp" value={formData.whatsapp} onChange={handleChange} placeholder="رقم الواتساب" />
+                  <input name="whatsapp" type="text" inputMode="numeric" value={formData.whatsapp} onChange={handleChange} placeholder="رقم الواتساب" />
                   {errors.whatsapp && <span className="error">{errors.whatsapp}</span>}
                 </div>
                 <div className="field-group">

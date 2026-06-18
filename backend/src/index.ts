@@ -154,8 +154,12 @@ if (!applicant.governorate) return 'governorate is required';
   if (applicant.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(applicant.email)) {
     return 'email is invalid';
   }
-  if (!applicant.age) return 'age is required';
-  return null;
+  if (applicant.age === null || isNaN(applicant.age)) {
+  return 'age is required and must be a number';
+}
+if (!Number.isInteger(applicant.age) || applicant.age < 10 || applicant.age > 100) {
+  return 'age must be a valid whole number';
+}
 }
 
 // ─── D1 helpers ──────────────────────────────────────────────────────────────
