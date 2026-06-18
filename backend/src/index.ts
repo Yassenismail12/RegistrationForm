@@ -23,6 +23,20 @@ type ApplicantPayload = {
 };
 
 const DEFAULT_ORIGIN = 'https://registration-form.pages.dev';
+const ALLOWED_ORIGINS = [
+  'https://registration-form.pages.dev',
+  'https://registration.ylyunion.com/',   // put your actual production domain here
+  'https://ylyunion.com/',   // put your actual production domain here
+  'http://localhost:3000',
+];
+
+function resolveOrigin(request: Request, env: Env): string {
+  const requestOrigin = request.headers.get('Origin');
+  if (requestOrigin && (ALLOWED_ORIGINS.includes(requestOrigin) || requestOrigin === env.WORKER_ALLOWED_ORIGIN)) {
+    return requestOrigin;
+  }
+  return env.WORKER_ALLOWED_ORIGIN || DEFAULT_ORIGIN;
+}
 const SUBMISSION_CACHE_TTL = 60 * 15;
 const PAGE_DATA_CACHE_TTL = 60 * 60 * 6;
 const IMAGE_CACHE_TTL = 60 * 60 * 24;
@@ -224,21 +238,30 @@ async function fetchAndCacheImage(url: string, env: Env) {
 
 // ─── Turnstile ────────────────────────────────────────────────────────────────
 
-async function verifyTurnstile(token: string, ip: string, env: Env): Promise<boolean> {
+async function verifyTurnstile(token: string, ip: string, env: Env): Promise<{ success: boolean; errorCodes: string[] }> {
+  if (!token) return { success: false, errorCodes: ['missing-input-response'] };
+
+  const formData = new URLSearchParams();
+  formData.append('secret', env.TURNSTILE_SECRET);
+  formData.append('response', token);
+  if (ip && ip !== 'anonymous') formData.append('remoteip', ip);
+
   const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ secret: env.TURNSTILE_SECRET, response: token, remoteip: ip }),
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: formData.toString(),
   });
+
   const data: any = await res.json();
-  return data.success === true;
+  console.log(JSON.stringify({ event: 'turnstile_verify', success: data.success, error_codes: data['error-codes'] || [] }));
+  return { success: data.success === true, errorCodes: data['error-codes'] || [] };
 }
 
 // ─── Main fetch handler ───────────────────────────────────────────────────────
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const origin = request.headers.get('Origin') || env.WORKER_ALLOWED_ORIGIN || DEFAULT_ORIGIN;
+    const origin = resolveOrigin(request, env);
     const url = new URL(request.url);
     const path = url.pathname;
 
@@ -293,10 +316,21 @@ export default {
 
         logEvent('registration_request', { clientId, path });
 
-        const valid = await verifyTurnstile(turnstileToken || '', clientIp, env);
-        if (!valid) {
+        const { success: turnstileOk, errorCodes } = await verifyTurnstile(turnstileToken || '', clientIp, env);
+        if (!turnstileOk) {
+          logEvent('turnstile_failed', { clientId, errorCodes });
+
+          if (errorCodes.includes('timeout-or-duplicate')) {
+            return jsonResponse(
+              { error: 'انتهت صلاحية التحقق، يرجى تحديث الصفحة وإعادة المحاولة.', code: 'turnstile_expired' },
+              403,
+              'no-store',
+              origin,
+            );
+          }
+
           return jsonResponse(
-            { error: 'Verification failed. Please try again.' },
+            { error: 'فشل التحقق الأمني. يرجى إعادة المحاولة.', code: 'turnstile_failed' },
             403,
             'no-store',
             origin,
