@@ -187,7 +187,8 @@ if (!formData.age) {
     } else if (formData.egyptian && !/^[23][0-9]{13}$/.test(formData.national_id)) {
       newErrors.national_id = 'الرقم القومي يجب أن يكون 14 رقمًا ويبدأ بـ 2 أو 3';
     }
-
+// Add after the governorate field-group in validateForm:
+if (!formData.governorate) newErrors.governorate = 'المحافظة مطلوبة';
     if (!formData.whatsapp.trim()) newErrors.whatsapp = 'رقم الواتساب مطلوب';
     if (formData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'صيغة الايميل غير صحيحة';

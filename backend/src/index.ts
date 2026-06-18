@@ -131,6 +131,8 @@ function normalizeApplicantPayload(body: Record<string, any>): ApplicantPayload 
 function validateApplicantPayload(applicant: ApplicantPayload): string | null {
   if (!applicant.full_name) return 'full_name is required';
   if (!applicant.national_id) return 'national_id is required';
+  // Add after the email check:
+if (!applicant.governorate) return 'governorate is required';
   if (!applicant.whatsapp) return 'whatsapp is required';
   if (applicant.egyptian && !/^[23][0-9]{13}$/.test(applicant.national_id)) {
     return 'national_id must be 14 digits and start with 2 or 3 for Egyptian applicants';
