@@ -56,7 +56,10 @@
 .dash-table-wrap {
   overflow-x: auto;
 }
-
+.dash-chart-wrap {
+  user-select: none;
+  -webkit-user-select: none;
+}
 .dash-table {
   width: 100%;
   border-collapse: collapse;
