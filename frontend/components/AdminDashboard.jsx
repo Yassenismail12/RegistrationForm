@@ -106,8 +106,54 @@ export default function AdminDashboard() {
   const [error, setError] = useState("");
   const [exporting, setExporting] = useState(false);
   const [selectedGov, setSelectedGov] = useState(null);
+  const USE_MOCK = false; // ← set to false when done testing
 
+  const MOCK_STATS = {
+    total: 15420,
+    governorates: [
+      { governorate: 'القاهرة', count: 3200 },
+      { governorate: 'الجيزة', count: 2100 },
+      { governorate: 'الإسكندرية', count: 1800 },
+      { governorate: 'الدقهلية', count: 950 },
+      { governorate: 'البحيرة', count: 870 },
+      { governorate: 'الشرقية', count: 760 },
+      { governorate: 'المنيا', count: 650 },
+      { governorate: 'الغربية', count: 600 },
+      { governorate: 'القليوبية', count: 580 },
+      { governorate: 'أسيوط', count: 430 },
+      { governorate: 'المنوفية', count: 390 },
+      { governorate: 'سوهاج', count: 340 },
+      { governorate: 'بني سويف', count: 290 },
+      { governorate: 'الفيوم', count: 270 },
+      { governorate: 'كفر الشيخ', count: 250 },
+      { governorate: 'الأقصر', count: 200 },
+      { governorate: 'قنا', count: 180 },
+      { governorate: 'أسوان', count: 160 },
+      { governorate: 'الإسماعيلية', count: 140 },
+      { governorate: 'الوادي الجديد', count: 120 },
+      { governorate: 'السويس', count: 110 },
+      { governorate: 'دمياط', count: 100 },
+      { governorate: 'شمال سيناء', count: 80 },
+      { governorate: 'بورسعيد', count: 70 },
+      { governorate: 'مطروح', count: 60 },
+      { governorate: 'البحر الأحمر', count: 50 },
+      { governorate: 'جنوب سيناء', count: 40 },
+    ],
+  };
+  
+  const MOCK_HOURLY = Array.from({ length: 24 }, (_, i) => ({
+    hour: i,
+    bucket: `2026-06-26 ${String(i).padStart(2, '0')}`,
+    count: Math.floor(Math.random() * 200) + 10,
+  }));
   const loadData = useCallback(async (isBackground = false) => {
+    if (USE_MOCK) {
+      setStats(MOCK_STATS);
+      setHourly(MOCK_HOURLY);
+      setLastUpdated(new Date());
+      setInitialLoading(false);
+      return;
+    }
     if (isBackground) {
       setRefreshing(true);
     }
@@ -148,7 +194,21 @@ export default function AdminDashboard() {
       })),
     [hourly],
   );
-
+  const CustomTick = ({ x, y, payload }) => (
+    <g transform={`translate(${x},${y})`}>
+      <text
+        x={0} y={0}
+        dy={4}
+        dx={-7}
+        textAnchor="middle"
+        fill="#64748b"
+        fontSize={10}
+        transform="rotate(-90)"
+      >
+        {payload.value}
+      </text>
+    </g>
+  );
   const handleExport = async () => {
     setExporting(true);
     setError("");
@@ -219,7 +279,7 @@ export default function AdminDashboard() {
           <h2 className="dash-card-title">التوزيع حسب آخر 24 ساعة ⏱️</h2>
           <div className="dash-chart-wrap">
             {hourlyChartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={260}>
+                <ResponsiveContainer width="100%" height={220}>
                   <BarChart
                     data={hourlyChartData}
                     margin={{ top: 8, right: 0, left: 0, bottom: 30 }}
@@ -227,7 +287,7 @@ export default function AdminDashboard() {
                   >
                     <XAxis
                       dataKey="label"
-                      tick={{ fontSize: 8, fill: "#64748b" }}
+                      tick={<CustomTick />}
                       interval={0}
                       axisLine={false}
                       tickLine={false}
@@ -242,7 +302,7 @@ export default function AdminDashboard() {
                       dataKey="count"
                       fill="#2563eb"
                       radius={[3, 3, 0, 0]}
-                      maxBarSize={10}
+                      maxBarSize={8}
                     />
                   </BarChart>
                 </ResponsiveContainer>
