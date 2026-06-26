@@ -212,7 +212,7 @@ export default function AdminDashboard() {
                   <XAxis
                     dataKey="label"
                     tick={{ fontSize: 11, fill: '#64748b' }}
-                    interval={2}
+                    interval={0}
                     axisLine={false}
                     tickLine={false}
                   />
