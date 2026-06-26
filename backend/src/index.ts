@@ -592,32 +592,45 @@ export default {
     }
 
     // ── GET /api/admin/stats ─────────────────────────────────────────────────
-    if (path === '/api/admin/stats' && request.method === 'GET') {
-      if (!(await validateAdminSession(request, env))) {
-        return unauthorizedResponse(origin);
-      }
-
+    if (path === '/api/dashboard/stats' && request.method === 'GET') {
       try {
+        const CACHE_KEY = 'dashboard:stats';
+        const CACHE_TTL = 60 * 2; // 2 minutes
+    
+        const cached = await kvGet(CACHE_KEY, env);
+        if (cached) {
+          return jsonResponse({ ...cached as object, fromCache: true }, 200, 'no-store', origin);
+        }
+    
         const stats = await getAdminStats(env);
-        return jsonResponse(stats, 200, 'no-store', origin);
+        const payload = { ...stats, updatedAt: new Date().toISOString() };
+        await kvSet(CACHE_KEY, payload, CACHE_TTL, env);
+        return jsonResponse(payload, 200, 'no-store', origin);
       } catch (error) {
-        logEvent('admin_stats_error', { clientId, error: String(error) });
+        logEvent('dashboard_stats_error', { clientId, error: String(error) });
         return jsonResponse({ error: 'Failed to load stats' }, 500, 'no-store', origin);
       }
     }
+    
 
     // ── GET /api/admin/stats/daily ───────────────────────────────────────────
-    if (path === '/api/admin/stats/daily' && request.method === 'GET') {
-      if (!(await validateAdminSession(request, env))) {
-        return unauthorizedResponse(origin);
-      }
-
+    if (path === '/api/dashboard/hourly' && request.method === 'GET') {
       try {
-        const daily = await getDailyStatsByGovernorate(env);
-        return jsonResponse({ daily }, 200, 'no-store', origin);
+        const CACHE_KEY = 'dashboard:hourly';
+        const CACHE_TTL = 60 * 2; // 2 minutes
+    
+        const cached = await kvGet(CACHE_KEY, env);
+        if (cached) {
+          return jsonResponse({ ...(cached as object), fromCache: true }, 200, 'no-store', origin);
+        }
+    
+        const hourly = await getHourlyStatsLast24Hours(env);
+        const payload = { hourly, updatedAt: new Date().toISOString() };
+        await kvSet(CACHE_KEY, payload, CACHE_TTL, env);
+        return jsonResponse(payload, 200, 'no-store', origin);
       } catch (error) {
-        logEvent('admin_daily_stats_error', { clientId, error: String(error) });
-        return jsonResponse({ error: 'Failed to load daily stats' }, 500, 'no-store', origin);
+        logEvent('dashboard_hourly_error', { clientId, error: String(error) });
+        return jsonResponse({ error: 'Failed to load hourly stats' }, 500, 'no-store', origin);
       }
     }
 
