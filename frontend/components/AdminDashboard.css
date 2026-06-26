@@ -69,7 +69,7 @@
 .dash-table td {
   padding: 12px 10px;
   text-align: center;
-  border-bottom: 1px solid #e8edf2;
+  border-bottom: 3px solid #d7d8d8;
   font-size: 0.95rem;
 }
 
@@ -91,7 +91,7 @@
 }
 
 .dash-count-cell {
-  color: #2563eb;
+  color: #1034a8;
   font-weight: 700;
   font-size: 1.05rem;
   width: 90px;

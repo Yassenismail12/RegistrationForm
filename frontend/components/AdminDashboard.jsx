@@ -91,7 +91,7 @@ function HourlyTooltip({ active, payload }) {
     <div className="dash-tooltip">
       <div className="dash-tooltip-time">الساعة {formatHourTooltip(hour)}</div>
       <div className="dash-tooltip-count">
-        {count.toLocaleString("ar-EG")} متطوع
+        {count.toLocaleString("en-US")} متطوع
       </div>
     </div>
   );
@@ -106,7 +106,7 @@ export default function AdminDashboard() {
   const [error, setError] = useState("");
   const [exporting, setExporting] = useState(false);
   const [selectedGov, setSelectedGov] = useState(null);
-  const USE_MOCK = false; // ← set to false when done testing
+  const USE_MOCK = true; // ← set to false when done testing
 
   const MOCK_STATS = {
     total: 15420,
@@ -328,7 +328,7 @@ export default function AdminDashboard() {
         <div className="dash-footer">
           {lastUpdated && (
             <p className="dash-footer-time">
-              آخر تحديث: {formatArabicTime(lastUpdated)}
+              آخر تحديث: {lastUpdated.toLocaleString()}
               {refreshing ? " (جاري التحديث...)" : ""}
             </p>
           )}
