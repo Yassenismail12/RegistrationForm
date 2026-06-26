@@ -328,7 +328,12 @@ export default function AdminDashboard() {
         <div className="dash-footer">
           {lastUpdated && (
             <p className="dash-footer-time">
-              آخر تحديث: {lastUpdated.toLocaleString()}
+            آخر تحديث: {lastUpdated.toLocaleTimeString("en-US", {
+  hour: "numeric",
+  minute: "2-digit",
+  hour12: true,
+  timeZone: "Africa/Cairo",
+})}
               {refreshing ? " (جاري التحديث...)" : ""}
             </p>
           )}
