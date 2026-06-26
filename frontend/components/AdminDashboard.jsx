@@ -208,12 +208,15 @@ export default function AdminDashboard() {
           <div className="dash-chart-wrap">
             {hourlyChartData.length > 0 ? (
               <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={hourlyChartData} margin={{ top: 8, right: 4, left: 0, bottom: 4 }}>
+                <BarChart data={hourlyChartData} margin={{ top: 8, right: 4, left: 0, bottom: 15 }}>
                   <XAxis
                     dataKey="label"
-                    tick={{ fontSize: 11, fill: '#64748b' }}
+                    tick={{ fontSize: 9, fill: '#64748b' }}
                     interval={0}
                     axisLine={false}
+                    angle={-45}
+                    textAnchor="end"
+                    height={40}
                     tickLine={false}
                   />
                   <YAxis hide allowDecimals={false} />
