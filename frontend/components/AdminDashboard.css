@@ -196,3 +196,15 @@
     font-size: 3.75rem;
   }
 }
+.dash-chart-wrap {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.dash-chart-wrap svg {
+  outline: none;
+}
+
+.dash-chart-wrap * {
+  outline: none;
+}
