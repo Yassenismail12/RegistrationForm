@@ -219,7 +219,6 @@ export default function AdminDashboard() {
           <h2 className="dash-card-title">التوزيع حسب آخر 24 ساعة ⏱️</h2>
           <div className="dash-chart-wrap" style={{ overflowX: "auto" }}>
             {hourlyChartData.length > 0 ? (
-              <div style={{ minWidth: "600px" }}>
                 <ResponsiveContainer width="100%" height={260}>
                   <BarChart
                     data={hourlyChartData}
@@ -245,7 +244,6 @@ export default function AdminDashboard() {
                     />
                   </BarChart>
                 </ResponsiveContainer>
-              </div>
             ) : (
               <div className="dash-loading">لا توجد بيانات للعرض</div>
             )}
