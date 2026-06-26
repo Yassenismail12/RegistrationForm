@@ -223,6 +223,7 @@ export default function AdminDashboard() {
                   <BarChart
                     data={hourlyChartData}
                     margin={{ top: 8, right: 0, left: 0, bottom: 30 }}
+                    tabIndex={-1}
                   >
                     <XAxis
                       dataKey="label"
@@ -231,8 +232,6 @@ export default function AdminDashboard() {
                       axisLine={false}
                       tickLine={false}
                       angle={-90}
-                      textAnchor="end"
-                      height={55}
                     />
                     <YAxis hide allowDecimals={false} />
                     <Tooltip

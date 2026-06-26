@@ -204,6 +204,12 @@
 .dash-chart-wrap svg {
   outline: none;
 }
+.dash-chart-wrap svg,
+.dash-chart-wrap svg *,
+.dash-chart-wrap div {
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent;
+}
 
 .dash-chart-wrap * {
   outline: none;
