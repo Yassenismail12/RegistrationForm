@@ -222,7 +222,7 @@ export default function AdminDashboard() {
                 <ResponsiveContainer width="100%" height={260}>
                   <BarChart
                     data={hourlyChartData}
-                    margin={{ top: 8, right: 4, left: 0, bottom: 10 }}
+                    margin={{ top: 8, right: 4, left: 0, bottom: 20 }}
                   >
                     <XAxis
                       dataKey="label"
