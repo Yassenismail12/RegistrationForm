@@ -306,10 +306,10 @@ function getEgyptDateParts(date: Date) {
 async function getHourlyStatsLast24Hours(env: Env) {
   const rows = await env.DB.prepare(`
     SELECT
-      strftime('%Y-%m-%d %H', datetime(submitted_at, '+2 hours')) AS bucket,
+      strftime('%Y-%m-%d %H', datetime(submitted_at, '+3 hours')) AS bucket,
       COUNT(*) AS count
     FROM applicants
-    WHERE datetime(submitted_at, '+2 hours') >= datetime('now', '+2 hours', '-24 hours')
+    WHERE datetime(submitted_at, '+3 hours') >= datetime('now', '+3 hours', '-24 hours')
     GROUP BY bucket
     ORDER BY bucket ASC
   `).all<{ bucket: string; count: number }>();
