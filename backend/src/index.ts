@@ -495,6 +495,9 @@ export default {
 
         if (id) {
           await kvSet(`submission:${id}`, applicant, SUBMISSION_CACHE_TTL, env);
+
+          await kvDelete('dashboard:stats', env);
+          await kvDelete('dashboard:hourly', env);
         }
 
         return jsonResponse(
@@ -533,27 +536,7 @@ export default {
       return jsonResponse({ id, submission }, 200, 'public, max-age=60', origin);
     }
 
-    // ── GET /api/dashboard/stats ─────────────────────────────────────────────
-    if (path === '/api/dashboard/stats' && request.method === 'GET') {
-      try {
-        const stats = await getAdminStats(env);
-        return jsonResponse({ ...stats, updatedAt: new Date().toISOString() }, 200, 'no-store', origin);
-      } catch (error) {
-        logEvent('dashboard_stats_error', { clientId, error: String(error) });
-        return jsonResponse({ error: 'Failed to load stats' }, 500, 'no-store', origin);
-      }
-    }
 
-    // ── GET /api/dashboard/hourly ──────────────────────────────────────────────
-    if (path === '/api/dashboard/hourly' && request.method === 'GET') {
-      try {
-        const hourly = await getHourlyStatsLast24Hours(env);
-        return jsonResponse({ hourly, updatedAt: new Date().toISOString() }, 200, 'no-store', origin);
-      } catch (error) {
-        logEvent('dashboard_hourly_error', { clientId, error: String(error) });
-        return jsonResponse({ error: 'Failed to load hourly stats' }, 500, 'no-store', origin);
-      }
-    }
 
     // ── GET /api/dashboard/export ──────────────────────────────────────────────
     if (path === '/api/dashboard/export' && request.method === 'GET') {
