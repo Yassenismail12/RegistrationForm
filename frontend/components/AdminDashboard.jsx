@@ -217,7 +217,7 @@ export default function AdminDashboard() {
 
         <div className="dash-card">
           <h2 className="dash-card-title">التوزيع حسب آخر 24 ساعة ⏱️</h2>
-          <div className="dash-chart-wrap" style={{ overflowX: "auto" }}>
+          <div className="dash-chart-wrap">
             {hourlyChartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={260}>
                   <BarChart
