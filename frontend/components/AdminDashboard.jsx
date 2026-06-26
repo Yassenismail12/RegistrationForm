@@ -106,7 +106,7 @@ export default function AdminDashboard() {
   const [error, setError] = useState("");
   const [exporting, setExporting] = useState(false);
   const [selectedGov, setSelectedGov] = useState(null);
-  const USE_MOCK = true; // ← set to false when done testing
+  const USE_MOCK = false; // ← set to false when done testing
 
   const MOCK_STATS = {
     total: 15420,
