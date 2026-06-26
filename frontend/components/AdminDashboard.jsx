@@ -105,6 +105,7 @@ export default function AdminDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [exporting, setExporting] = useState(false);
+  const [selectedGov, setSelectedGov] = useState(null);
 
   const loadData = useCallback(async (isBackground = false) => {
     if (isBackground) {
@@ -193,12 +194,20 @@ export default function AdminDashboard() {
               </thead>
               <tbody>
                 {sortedGovernorates.map((row, index) => (
-                  <tr key={row.governorate}>
-                    <td className="dash-index-cell">{index + 1}</td>
-                    <td>{row.governorate}</td>
-                    <td className="dash-count-cell">
+                  <tr 
+                  key={row.governorate}
+                  onClick={() => setSelectedGov(selectedGov === row.governorate ? null : row.governorate)}
+                  style={{ 
+    background: selectedGov === row.governorate ? '#1e3a6e' : '',
+    cursor: 'pointer',
+    transition: 'background 0.2s',
+  }}
+                  >
+                    <td className="dash-index-cell" style={{ color: selectedGov === row.governorate ? '#fff' : '' }}>{index + 1}</td>
+                    <td style={{ color: selectedGov === row.governorate ? '#fff' : '' }}>{row.governorate}</td>
+                    <td className="dash-count-cell" style={{ color: selectedGov === row.governorate ? '#fff' : '' }}>
                       {row.count.toLocaleString("en-US")}
-                    </td>
+                  </td>
                   </tr>
                 ))}
               </tbody>
