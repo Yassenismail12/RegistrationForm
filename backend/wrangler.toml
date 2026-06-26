@@ -43,3 +43,6 @@ WORKER_ALLOWED_ORIGIN = "https://registration.ylyunion.com"
 
 # TURNSTILE_SECRET must be set as a secret, not a plain var:
 #   npx wrangler secret put TURNSTILE_SECRET
+#
+# ADMIN_PASSWORD must also be set as a secret for the admin dashboard:
+#   npx wrangler secret put ADMIN_PASSWORD

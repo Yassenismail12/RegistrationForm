@@ -3,6 +3,7 @@ interface Env {
   DB: D1Database;
   KV: KVNamespace;
   TURNSTILE_SECRET: string;
+  ADMIN_PASSWORD?: string;
 }
 
 type ApplicantPayload = {
@@ -160,6 +161,7 @@ if (!applicant.governorate) return 'governorate is required';
 if (!Number.isInteger(applicant.age) || applicant.age < 10 || applicant.age > 100) {
   return 'age must be a valid whole number';
 }
+  return null;
 }
 
 // ─── D1 helpers ──────────────────────────────────────────────────────────────
@@ -197,6 +199,90 @@ async function saveApplicantToD1(applicant: ApplicantPayload, env: Env) {
 
 async function getSubmissionFromD1(id: string, env: Env) {
   return await env.DB.prepare('SELECT * FROM applicants WHERE id = ?').bind(id).first();
+}
+
+// ─── Admin helpers ────────────────────────────────────────────────────────────
+
+const ADMIN_SESSION_TTL = 60 * 60 * 8;
+
+function generateSessionToken(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function createAdminSession(env: Env): Promise<string> {
+  const token = generateSessionToken();
+  await kvSet(`admin_session:${token}`, { createdAt: Date.now() }, ADMIN_SESSION_TTL, env);
+  return token;
+}
+
+async function validateAdminSession(request: Request, env: Env): Promise<boolean> {
+  const auth = request.headers.get('Authorization');
+  if (!auth?.startsWith('Bearer ')) return false;
+  const token = auth.slice(7).trim();
+  if (!token) return false;
+  const session = await kvGet<{ createdAt: number }>(`admin_session:${token}`, env);
+  return session !== null;
+}
+
+function unauthorizedResponse(origin: string) {
+  return jsonResponse({ error: 'Unauthorized' }, 401, 'no-store', origin);
+}
+
+async function getAdminStats(env: Env) {
+  const totalResult = await env.DB.prepare('SELECT COUNT(*) AS total FROM applicants').first<{ total: number }>();
+  const total = totalResult?.total ?? 0;
+
+  const governorateRows = await env.DB.prepare(`
+    SELECT governorate, COUNT(*) AS count
+    FROM applicants
+    WHERE governorate IS NOT NULL AND governorate != ''
+    GROUP BY governorate
+    ORDER BY count DESC
+  `).all<{ governorate: string; count: number }>();
+
+  const governorates = (governorateRows.results ?? []).map((row) => ({
+    governorate: row.governorate,
+    count: row.count,
+    percentage: total > 0 ? Math.round((row.count / total) * 1000) / 10 : 0,
+  }));
+
+  const allGovernorates = PAGE_DATA.governorates.map((name) => {
+    const existing = governorates.find((g) => g.governorate === name);
+    return existing ?? { governorate: name, count: 0, percentage: 0 };
+  });
+
+  const knownNames = new Set(PAGE_DATA.governorates);
+  const orphanGovernorates = governorates.filter((g) => !knownNames.has(g.governorate));
+  allGovernorates.push(...orphanGovernorates);
+
+  return { total, governorates: allGovernorates };
+}
+
+async function getDailyStatsByGovernorate(env: Env) {
+  const rows = await env.DB.prepare(`
+    SELECT DATE(submitted_at) AS date, governorate, COUNT(*) AS count
+    FROM applicants
+    WHERE governorate IS NOT NULL AND governorate != ''
+    GROUP BY DATE(submitted_at), governorate
+    ORDER BY date ASC
+  `).all<{ date: string; governorate: string; count: number }>();
+
+  return rows.results ?? [];
+}
+
+async function getAllApplicantsForExport(env: Env) {
+  const rows = await env.DB.prepare(`
+    SELECT
+      id, full_name, national_id, whatsapp, email, age, governorate,
+      university, faculty, study_year, how_know_about_us,
+      has_volunteer_experience, volunteer_experience, egyptian, submitted_at, source
+    FROM applicants
+    ORDER BY submitted_at DESC
+  `).all();
+
+  return rows.results ?? [];
 }
 
 // ─── Rate-limiting ────────────────────────────────────────────────────────────
@@ -399,6 +485,76 @@ export default {
 
       await kvSet(`submission:${id}`, submission, SUBMISSION_CACHE_TTL, env);
       return jsonResponse({ id, submission }, 200, 'public, max-age=60', origin);
+    }
+
+    // ── POST /api/admin/login ────────────────────────────────────────────────
+    if (path === '/api/admin/login' && request.method === 'POST') {
+      try {
+        const body = (await request.json()) as { password?: string };
+        const password = String(body.password ?? '');
+
+        if (!env.ADMIN_PASSWORD) {
+          logEvent('admin_login_misconfigured', { clientId });
+          return jsonResponse({ error: 'Admin access is not configured' }, 503, 'no-store', origin);
+        }
+
+        if (password !== env.ADMIN_PASSWORD) {
+          logEvent('admin_login_failed', { clientId });
+          return jsonResponse({ error: 'كلمة المرور غير صحيحة' }, 401, 'no-store', origin);
+        }
+
+        const token = await createAdminSession(env);
+        logEvent('admin_login_success', { clientId });
+        return jsonResponse({ token, expiresIn: ADMIN_SESSION_TTL }, 200, 'no-store', origin);
+      } catch (error) {
+        logEvent('admin_login_error', { clientId, error: String(error) });
+        return jsonResponse({ error: 'Login failed' }, 500, 'no-store', origin);
+      }
+    }
+
+    // ── GET /api/admin/stats ─────────────────────────────────────────────────
+    if (path === '/api/admin/stats' && request.method === 'GET') {
+      if (!(await validateAdminSession(request, env))) {
+        return unauthorizedResponse(origin);
+      }
+
+      try {
+        const stats = await getAdminStats(env);
+        return jsonResponse(stats, 200, 'no-store', origin);
+      } catch (error) {
+        logEvent('admin_stats_error', { clientId, error: String(error) });
+        return jsonResponse({ error: 'Failed to load stats' }, 500, 'no-store', origin);
+      }
+    }
+
+    // ── GET /api/admin/stats/daily ───────────────────────────────────────────
+    if (path === '/api/admin/stats/daily' && request.method === 'GET') {
+      if (!(await validateAdminSession(request, env))) {
+        return unauthorizedResponse(origin);
+      }
+
+      try {
+        const daily = await getDailyStatsByGovernorate(env);
+        return jsonResponse({ daily }, 200, 'no-store', origin);
+      } catch (error) {
+        logEvent('admin_daily_stats_error', { clientId, error: String(error) });
+        return jsonResponse({ error: 'Failed to load daily stats' }, 500, 'no-store', origin);
+      }
+    }
+
+    // ── GET /api/admin/export ────────────────────────────────────────────────
+    if (path === '/api/admin/export' && request.method === 'GET') {
+      if (!(await validateAdminSession(request, env))) {
+        return unauthorizedResponse(origin);
+      }
+
+      try {
+        const applicants = await getAllApplicantsForExport(env);
+        return jsonResponse({ applicants, exportedAt: new Date().toISOString() }, 200, 'no-store', origin);
+      } catch (error) {
+        logEvent('admin_export_error', { clientId, error: String(error) });
+        return jsonResponse({ error: 'Failed to export data' }, 500, 'no-store', origin);
+      }
     }
 
     // ── GET /api/optimize-image ──────────────────────────────────────────────

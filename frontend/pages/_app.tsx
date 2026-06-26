@@ -3,6 +3,7 @@ import Head from 'next/head';
 import type { AppProps } from 'next/app';
 import { Component, ErrorInfo, ReactNode } from 'react';
 import '../components/RegistrationForm.css';
+import '../components/AdminDashboard.css';
 
 interface ErrorBoundaryState {
   hasError: boolean;
