@@ -285,6 +285,52 @@ async function getAllApplicantsForExport(env: Env) {
   return rows.results ?? [];
 }
 
+function getEgyptDateParts(date: Date) {
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Africa/Cairo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    hour12: false,
+  });
+  const parts = formatter.formatToParts(date);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '00';
+  const hourStr = get('hour');
+  return {
+    hour: parseInt(hourStr, 10),
+    bucket: `${get('year')}-${get('month')}-${get('day')} ${hourStr.padStart(2, '0')}`,
+  };
+}
+
+async function getHourlyStatsLast24Hours(env: Env) {
+  const rows = await env.DB.prepare(`
+    SELECT
+      strftime('%Y-%m-%d %H', datetime(submitted_at, '+2 hours')) AS bucket,
+      COUNT(*) AS count
+    FROM applicants
+    WHERE datetime(submitted_at, '+2 hours') >= datetime('now', '+2 hours', '-24 hours')
+    GROUP BY bucket
+    ORDER BY bucket ASC
+  `).all<{ bucket: string; count: number }>();
+
+  const countMap = new Map((rows.results ?? []).map((row) => [row.bucket, row.count]));
+  const now = new Date();
+  const hourly = [];
+
+  for (let i = 23; i >= 0; i -= 1) {
+    const slot = new Date(now.getTime() - i * 60 * 60 * 1000);
+    const { hour, bucket } = getEgyptDateParts(slot);
+    hourly.push({
+      bucket,
+      hour,
+      count: countMap.get(bucket) ?? 0,
+    });
+  }
+
+  return hourly;
+}
+
 // ─── Rate-limiting ────────────────────────────────────────────────────────────
 
 async function nationalIdVelocityCheck(clientId: string, env: Env): Promise<boolean> {
@@ -485,6 +531,39 @@ export default {
 
       await kvSet(`submission:${id}`, submission, SUBMISSION_CACHE_TTL, env);
       return jsonResponse({ id, submission }, 200, 'public, max-age=60', origin);
+    }
+
+    // ── GET /api/dashboard/stats ─────────────────────────────────────────────
+    if (path === '/api/dashboard/stats' && request.method === 'GET') {
+      try {
+        const stats = await getAdminStats(env);
+        return jsonResponse({ ...stats, updatedAt: new Date().toISOString() }, 200, 'no-store', origin);
+      } catch (error) {
+        logEvent('dashboard_stats_error', { clientId, error: String(error) });
+        return jsonResponse({ error: 'Failed to load stats' }, 500, 'no-store', origin);
+      }
+    }
+
+    // ── GET /api/dashboard/hourly ──────────────────────────────────────────────
+    if (path === '/api/dashboard/hourly' && request.method === 'GET') {
+      try {
+        const hourly = await getHourlyStatsLast24Hours(env);
+        return jsonResponse({ hourly, updatedAt: new Date().toISOString() }, 200, 'no-store', origin);
+      } catch (error) {
+        logEvent('dashboard_hourly_error', { clientId, error: String(error) });
+        return jsonResponse({ error: 'Failed to load hourly stats' }, 500, 'no-store', origin);
+      }
+    }
+
+    // ── GET /api/dashboard/export ──────────────────────────────────────────────
+    if (path === '/api/dashboard/export' && request.method === 'GET') {
+      try {
+        const applicants = await getAllApplicantsForExport(env);
+        return jsonResponse({ applicants, exportedAt: new Date().toISOString() }, 200, 'no-store', origin);
+      } catch (error) {
+        logEvent('dashboard_export_error', { clientId, error: String(error) });
+        return jsonResponse({ error: 'Failed to export data' }, 500, 'no-store', origin);
+      }
     }
 
     // ── POST /api/admin/login ────────────────────────────────────────────────
