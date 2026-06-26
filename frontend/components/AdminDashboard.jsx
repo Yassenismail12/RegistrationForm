@@ -220,14 +220,14 @@ export default function AdminDashboard() {
           <div className="dash-chart-wrap" style={{ overflowX: "auto" }}>
             {hourlyChartData.length > 0 ? (
               <div style={{ minWidth: "600px" }}>
-                <ResponsiveContainer width="100%" height={220}>
+                <ResponsiveContainer width="100%" height={260}>
                   <BarChart
                     data={hourlyChartData}
-                    margin={{ top: 8, right: 4, left: 0, bottom: 4 }}
+                    margin={{ top: 8, right: 4, left: 0, bottom: 35 }}
                   >
                     <XAxis
                       dataKey="label"
-                      tick={{ fontSize: 10, fill: "#64748b" }}
+                      tick={{ fontSize: 8, fill: "#64748b" }}
                       interval={0}
                       axisLine={false}
                       tickLine={false}
@@ -241,7 +241,7 @@ export default function AdminDashboard() {
                       dataKey="count"
                       fill="#2563eb"
                       radius={[3, 3, 0, 0]}
-                      maxBarSize={18}
+                      maxBarSize={10}
                     />
                   </BarChart>
                 </ResponsiveContainer>
