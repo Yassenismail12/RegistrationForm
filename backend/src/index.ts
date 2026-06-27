@@ -592,48 +592,7 @@ export default {
       }
     }
 
-    // ── GET /api/admin/stats ─────────────────────────────────────────────────
-    if (path === '/api/dashboard/stats' && request.method === 'GET') {
-      try {
-        const CACHE_KEY = 'dashboard:stats';
-        const CACHE_TTL = 60 * 2; // 2 minutes
     
-        const cached = await kvGet(CACHE_KEY, env);
-        if (cached) {
-          return jsonResponse({ ...cached as object, fromCache: true }, 200, 'no-store', origin);
-        }
-    
-        const stats = await getAdminStats(env);
-        const payload = { ...stats, updatedAt: new Date().toISOString() };
-        await kvSet(CACHE_KEY, payload, CACHE_TTL, env);
-        return jsonResponse(payload, 200, 'no-store', origin);
-      } catch (error) {
-        logEvent('dashboard_stats_error', { clientId, error: String(error) });
-        return jsonResponse({ error: 'Failed to load stats' }, 500, 'no-store', origin);
-      }
-    }
-    
-
-    // ── GET /api/admin/stats/daily ───────────────────────────────────────────
-    if (path === '/api/dashboard/hourly' && request.method === 'GET') {
-      try {
-        const CACHE_KEY = 'dashboard:hourly';
-        const CACHE_TTL = 60 * 2; // 2 minutes
-    
-        const cached = await kvGet(CACHE_KEY, env);
-        if (cached) {
-          return jsonResponse({ ...(cached as object), fromCache: true }, 200, 'no-store', origin);
-        }
-    
-        const hourly = await getHourlyStatsLast24Hours(env);
-        const payload = { hourly, updatedAt: new Date().toISOString() };
-        await kvSet(CACHE_KEY, payload, CACHE_TTL, env);
-        return jsonResponse(payload, 200, 'no-store', origin);
-      } catch (error) {
-        logEvent('dashboard_hourly_error', { clientId, error: String(error) });
-        return jsonResponse({ error: 'Failed to load hourly stats' }, 500, 'no-store', origin);
-      }
-    }
 
     // ── GET /api/admin/export ────────────────────────────────────────────────
     if (path === '/api/admin/export' && request.method === 'GET') {

@@ -10,7 +10,7 @@ import {
 import * as XLSX from "xlsx";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
-const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+const REFRESH_INTERVAL_MS = 5 * 1000;
 
 function formatArabicTime(date) {
   return date.toLocaleTimeString("ar-EG", {
